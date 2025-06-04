@@ -1,4 +1,5 @@
 import { Handlers, FreshContext } from "$fresh/server.ts";
+import Chart from "../islands/Chart.tsx";
 
 export const handler: Handlers = {
   GET(_req: Request, ctx: FreshContext) {
@@ -10,7 +11,7 @@ export const handler: Handlers = {
 export default function Home() {
   return (
     <div class="w-screen m-8 flex flex-col">
-      <p>Test</p>
+      <Chart />
     </div>
   );
 }
