@@ -16,8 +16,6 @@ export class Context {
     }
 
     public static async init() {
-        if (!this.uri) throw new Error("Deno KV URI not found!")
-        
         const kv = await Deno.openKv(this.uri);
         Context.context = new Context(kv)
     }
