@@ -13,7 +13,7 @@ export class Context {
     readonly kv: Deno.Kv;
 
     public constructor(kv: Deno.Kv) {
-        console.debug("Context initialized!")
+        console.debug("Context initialized!",kv)
         this.kv = kv;
     }
 
@@ -21,13 +21,16 @@ export class Context {
         let init_kv = undefined;
         switch(build_env) {
             case "dev":
+                // dev external db implementation
+                if (!kv_uri) throw new Error(`KV URI envar undefined or invalid: KV_URI=${kv_uri}`)
                 init_kv = await Deno.openKv(kv_uri);
                 break;
             case "prod":
+                // Deno Deploy implementation
                 init_kv = await Deno.openKv();
                 break;
             default:
-                throw new Error(`BUILD_ENV undefined or unknown value: BUILD_ENV=${build_env}`)
+                throw new Error(`BUILD_ENV undefined or invalid: BUILD_ENV=${build_env}`)
         }
 
         Context.context = new Context(init_kv)

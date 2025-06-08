@@ -1,7 +1,7 @@
 import { ulid } from "jsr:@std/ulid";
 import { User, DbKeys } from "../types.ts";
 
-interface UserCreate {
+export interface UserCreate {
     id?: string;
     first_name: string;
     last_name: string;
