@@ -7,7 +7,6 @@ export interface State {
 
 export class Context {
     private static context: Context;
-    private static uri: string | undefined = Deno.env.get("KV_URI")
     readonly kv: Deno.Kv;
 
     public constructor(kv: Deno.Kv) {
@@ -16,7 +15,8 @@ export class Context {
     }
 
     public static async init() {
-        const kv = await Deno.openKv(this.uri);
+        const uri: string | undefined = Deno.env.get("KV_URI")
+        const kv = await Deno.openKv(uri);
         Context.context = new Context(kv)
     }
 
