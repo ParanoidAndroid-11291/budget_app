@@ -54,15 +54,28 @@ const test_data = [
 
 export default () => {
 
+    const getData = () => {
+        let total = 0
+        const data = {
+            datasets: [{
+                label: "Net Cash Flow",
+                data: test_data.map((item) => {
+                    total += item.amount
+                    return new Object({x: item.date.toDateString(), y: total})
+                })
+            }]
+        }
+        console.debug("chart data",data)
+        return data
+    }
+
     return <canvas id="chart" ref={(dom) => {
             if (dom) {
                 new Chart(
                     dom,
                     {
                         type: "line",
-                        data: {
-                            datasets: test_data.map((data) => Object.create({x: data.date, y: data.amount}))
-                        }
+                        data: getData()
                     }
                 )
             }

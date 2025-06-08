@@ -4,7 +4,10 @@
 
 import * as $_404 from "./routes/_404.tsx";
 import * as $_app from "./routes/_app.tsx";
-import * as $_middleware from "./routes/_middleware.tsx";
+import * as $_middleware from "./routes/_middleware.ts";
+import * as $api_transactions_index from "./routes/api/transactions/index.js";
+import * as $api_users_id_ from "./routes/api/users/[id].ts";
+import * as $api_users_index from "./routes/api/users/index.ts";
 import * as $index from "./routes/index.tsx";
 import * as $Chart from "./islands/Chart.tsx";
 import * as $Counter from "./islands/Counter.tsx";
@@ -14,7 +17,10 @@ const manifest = {
   routes: {
     "./routes/_404.tsx": $_404,
     "./routes/_app.tsx": $_app,
-    "./routes/_middleware.tsx": $_middleware,
+    "./routes/_middleware.ts": $_middleware,
+    "./routes/api/transactions/index.js": $api_transactions_index,
+    "./routes/api/users/[id].ts": $api_users_id_,
+    "./routes/api/users/index.ts": $api_users_index,
     "./routes/index.tsx": $index,
   },
   islands: {
