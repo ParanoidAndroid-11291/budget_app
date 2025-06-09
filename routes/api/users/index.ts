@@ -4,10 +4,13 @@ import {
     createUser, 
     getUserById, 
     getUserByEmail, 
-    deleteUser, 
-    UserCreate 
+    deleteUser
 } from "../../../deno_kv/operations/users.ts";
-import { User } from "../../../deno_kv/types.ts";
+import { User, UserCreate } from "../../../deno_kv/schemas.ts";
+import { z } from "zod/v4";
+
+type User = z.infer<typeof User>
+type UserCreate = z.infer<typeof UserCreate>
 
 
 export const handler: Handlers<any,State> = {
@@ -73,22 +76,19 @@ export const handler: Handlers<any,State> = {
         })
     },
     async POST(req: Request, ctx: FreshContext<State>) {
-        const user = (await req.json()) as UserCreate;
+        const user_data = (await req.json()) as UserCreate;
         const { kv } = ctx.state.context;
-        
-        if (!user.first_name || !user.last_name || !user.email) {
-            const error = {
-                error: "MISSING_OR_INVALID_PARAMS",
-                message: "One or more params are missing or invalid in the request."
-            }
 
-            return new Response(JSON.stringify(error),{
+        const user = User.safeParse(user_data)
+
+        if (!user.success) {
+            return new Response(JSON.stringify(user.error),{
                 status: 400,
                 headers: { "Content-Type": "application/json"}
             })
         }
 
-        const res = await createUser(user, kv);
+        const res = await createUser(user.data, kv);
 
         if (!res.ok) {
             const error = {

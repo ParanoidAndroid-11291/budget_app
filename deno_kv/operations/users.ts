@@ -1,17 +1,22 @@
 import { ulid } from "jsr:@std/ulid";
-import { User, DbKeys } from "../types.ts";
+import { User, UserCreate, DbKeys } from "../schemas.ts";
+import { z } from "zod/v4";
 
-export interface UserCreate {
-    id?: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-}
+const primaryKeyName = DbKeys.enum.Users;
+const secondaryKeyName = DbKeys.enum.UsersByEmail;
 
-const primaryKeyName = DbKeys.Users;
-const secondaryKeyName = DbKeys.UsersByEmail;
+type User = z.infer<typeof User>
+type UserCreate = z.infer<typeof UserCreate>
 
-export const createUser = async (user: UserCreate, kv: Deno.Kv) => {
+export const createUser = async (userData: UserCreate, kv: Deno.Kv) => {
+
+    const user_parse = UserCreate.safeParse(userData)
+
+    if (!user_parse.success) {
+        return user_parse.error
+    }
+
+    const user = user_parse.data
 
     const uid = user.id ?? ulid()
     const newUser: User = {...user, id: uid}
