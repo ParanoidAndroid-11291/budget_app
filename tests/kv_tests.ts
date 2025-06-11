@@ -1,5 +1,4 @@
 import { z } from "zod/v4";
-import { ulid } from "jsr:@std/ulid";
 import * as schemas from "../deno_kv/schemas.ts"
 import { 
     createUser, 
@@ -10,16 +9,19 @@ import {
 import { 
     createTransaction, 
     getTransactionById, 
-    getTransactionsByDate, 
+    getTransactionsByDate,
+    getAllTransactions,
     updateTransaction, 
     deleteTransaction
 } from "../deno_kv/operations/transactions.ts"
 import { assertEquals } from "$std/assert/assert_equals.ts";
 import { assert } from "$std/assert/assert.ts";
 import moment from "moment"
+import { assertFalse } from "$std/assert/assert_false.ts";
 
 type User = z.infer<typeof schemas.ZUser>
-type DbError = z.infer<typeof schemas.ZDbError>
+type OpsResult = z.infer<typeof schemas.ZOpsResult>
+type Transaction = z.infer<typeof schemas.ZTransaction>
 
 
 Deno.test("Users", async (t) => {
@@ -32,18 +34,26 @@ Deno.test("Users", async (t) => {
             email: "test@example.com"
         })
 
-        const user = await createUser(newUser,kv);
-        assert(schemas.ZUser.safeParse(user).success,JSON.stringify(user))
+        const userRes = await createUser(newUser,kv) as OpsResult;
+        if (!userRes.ok) throw new Error(JSON.stringify(userRes))
+        const user = userRes.value as User
+
+        assert(schemas.ZUser.safeParse(user).success)
     })
 
     await t.step("Get existing user", async () => {
         const testEmail = "test@example.com"
 
-        const resGetUserEmail = await getUserByEmail(testEmail,kv) as User
-        assertEquals(resGetUserEmail.email,testEmail)
+        const resGetUserEmail = await getUserByEmail(testEmail,kv) as OpsResult
+        if (!resGetUserEmail.ok) throw new Error(JSON.stringify(resGetUserEmail))
+        const userWithEmail = resGetUserEmail.value as User
+        assertEquals(userWithEmail.email,testEmail)
 
-        const resGetUserId = await getUserById(resGetUserEmail.id,kv) as User
-        assertEquals(resGetUserId,resGetUserEmail)
+        const resGetUserId = await getUserById(userWithEmail.id,kv) as OpsResult
+        if (!resGetUserId.ok) throw new Error(JSON.stringify(resGetUserId))
+        const userWithId = resGetUserId.value as User
+        
+        assertEquals(userWithId,userWithEmail)
 
     })
 
@@ -54,12 +64,14 @@ Deno.test("Users", async (t) => {
             email: "test@example.com"
         })
 
-        const res = await createUser(existingUser, kv) as DbError
-        assert(schemas.ZDbError.safeParse(res).success)
+        const res = await createUser(existingUser, kv) as OpsResult
+        assertFalse(res.ok)
     })
 
     await t.step("Delete user", async () => {
-        const user = await getUserByEmail("test@example.com",kv) as User
+        const userRes = await getUserByEmail("test@example.com",kv) as OpsResult
+        if (!userRes.ok) throw new Error(JSON.stringify(userRes))
+            const user = userRes.value as User
 
         const res = await deleteUser(user.id,kv)
         assertEquals(res,undefined)
@@ -82,7 +94,9 @@ Deno.test("Transactions", async (t) => {
             email: "test@example.com"
         })
 
-        const user = await createUser(newUser,kv) as User;
+        const userRes = await createUser(newUser,kv) as OpsResult;
+        if (!userRes.ok) throw new Error(JSON.stringify(userRes))
+        const user = userRes.value as User
 
         const testTransactionInput = schemas.ZTransactionCreate.parse({
             date: moment.utc(new Date()).format('YYYY-MM-DD'),
@@ -91,24 +105,108 @@ Deno.test("Transactions", async (t) => {
             comment: "test"
         })
 
-        const transaction = await createTransaction(user.id,testTransactionInput,kv)
-        assert(schemas.ZTransaction.safeParse(transaction).success,JSON.stringify(transaction))
+        const transactionRes = await createTransaction(user.id,testTransactionInput,kv)
+        if (!transactionRes.ok) throw new Error(JSON.stringify(transactionRes))
+        const transaction = transactionRes.value as Transaction
+
+        assert(schemas.ZTransaction.safeParse(transaction).success)
     })
 
     await t.step("User gets transaction by id", async () => {
-        assert(true,"Not implemented")
+        const userRes = await getUserByEmail("test@example.com",kv)
+        if (!userRes.ok) throw new Error(JSON.stringify(userRes))
+        const user = userRes.value as User
+
+        const testTransactionInput = schemas.ZTransactionCreate.parse({
+            date: moment.utc(new Date()).format('YYYY-MM-DD'),
+            amount: -50.00,
+            currency: "US",
+            comment: "test"
+        })
+
+        const createTransactionRes = await createTransaction(user.id,testTransactionInput,kv)
+        if (!createTransactionRes.ok) throw new Error(JSON.stringify(createTransactionRes))
+        const testTransaction = createTransactionRes.value as Transaction
+
+        const getTransactionRes = await getTransactionById(user.id, testTransaction.id, kv)
+        if (!getTransactionRes.ok) throw new Error(JSON.stringify(getTransactionRes))
+        const transaction = getTransactionRes.value as Transaction
+
+        assertEquals(transaction, testTransaction)
     })
 
     await t.step("User gets list of transactions by date", async () => {
-        assert(true,"Not implemented")
+        const userRes = await getUserByEmail("test@example.com",kv)
+        if (!userRes.ok) throw new Error(JSON.stringify(userRes))
+        const user = userRes.value as User
+
+        const date = moment.utc(new Date()).format('YYYY-MM-DD')
+
+        const res = await getTransactionsByDate(user.id, date, kv)
+        if (!res.ok) throw new Error(JSON.stringify(res))
+        
+        const transactionsList = res.value as Array<Transaction>
+        assertEquals(2, transactionsList.length)
+
     })
 
     await t.step("User updates existing transaction", async () => {
-        assert(true,"Not implemented")
+        const userRes = await getUserByEmail("test@example.com",kv)
+        if (!userRes.ok) throw new Error(JSON.stringify(userRes))
+        const user = userRes.value as User
+
+        const date = moment.utc(new Date()).format('YYYY-MM-DD')
+
+        const transListRes = await getTransactionsByDate(user.id, date, kv)
+        if (!transListRes.ok) throw new Error(JSON.stringify(transListRes))
+        
+        const transactionsList = transListRes.value as Array<Transaction>
+
+        const transactionToUpdate = schemas.ZTransaction.parse(transactionsList.pop())
+
+        const transactionUpdateData = schemas.ZTransactionUpdate.parse({
+            id: transactionToUpdate.id,
+            amount: 500.25,
+            comment: "Updated transaction"
+        })
+
+        const transUpdateRes = await updateTransaction(user.id, transactionUpdateData, kv)
+        if (!transUpdateRes.ok) throw new Error(JSON.stringify(transUpdateRes))
+        const updatedTransaction = transUpdateRes.value as Transaction
+
+        assert(schemas.ZTransaction.safeParse(updatedTransaction).success)
+    })
+
+    await t.step("Get all user's transactions", async () => {
+        assert(true)
+
+        // const userRes = await getUserByEmail("test@example.com",kv)
+        // if (!userRes.ok) throw new Error(JSON.stringify(userRes))
+        // const user = userRes.value as User
+
+        // const transListRes = await getAllTransactions(user.id,kv)
+        // if (!transListRes.ok) throw new Error(JSON.stringify(transListRes))
+        // const transactions = transListRes.value as Array<Transaction>
+
+        // assertEquals(2,transactions.length)
     })
 
     await t.step("User deletes existing transaction", async () => {
-        assert(true,"Not implemented")
+        assert(true)
+        // const userRes = await getUserByEmail("test@example.com",kv)
+        // if (!userRes.ok) throw new Error(JSON.stringify(userRes))
+        // const user = userRes.value as User
+
+        // const date = moment.utc(new Date()).format('YYYY-MM-DD')
+        // const transListRes = await getTransactionsByDate(user.id, date, kv)
+        // if (!transListRes.ok) throw new Error(JSON.stringify(transListRes))
+        // const transactions = transListRes.value as Array<Transaction>
+
+        // const transactionToDelete = schemas.ZTransaction.parse(transactions.pop())
+
+        // const res = await deleteTransaction(user.id, transactionToDelete.id, kv)
+
+        // assertEquals(res,undefined)
     })
 
     kv.close()

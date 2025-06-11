@@ -7,7 +7,8 @@ import {
     ZDbKeys,
     ZUsersTbKey,
     ZUsersEmailTbKey,
-    ZDbError } from "../schemas.ts";
+    ZOpsResult
+ } from "../schemas.ts";
 import { z } from "zod/v4";
 
 const primaryKeyName = ZDbKeys.enum.Users;
@@ -15,16 +16,17 @@ const secondaryKeyName = ZDbKeys.enum.UsersByEmail;
 
 type User = z.infer<typeof ZUser>
 type UserCreate = z.infer<typeof ZUserCreate>
-type DbError = z.infer<typeof ZDbError>
+type OpsResult = z.infer<typeof ZOpsResult>
 type Uuid = z.infer<typeof ZUuid>
 type Email = z.infer<typeof ZEmail>
 
-export const createUser = async (userData: UserCreate, kv: Deno.Kv): Promise<User | DbError> => {
+export const createUser = async (userData: UserCreate, kv: Deno.Kv): Promise<OpsResult> => {
 
     const user_parse = ZUserCreate.safeParse(userData)
 
     if (!user_parse.success) {
-        return ZDbError.parse({
+        return ZOpsResult.parse({
+            ok: false,
             error: user_parse.error,
             message: "Invalid input for userData"
         })
@@ -33,7 +35,7 @@ export const createUser = async (userData: UserCreate, kv: Deno.Kv): Promise<Use
     const user = user_parse.data
 
     const uid = ulid()
-    const newUser: User = {...user, id: uid}
+    const newUser: User = {...user, id: uid }
 
     const primaryKey = ZUsersTbKey.parse([primaryKeyName, uid])
     const secondaryKey = ZUsersEmailTbKey.parse([secondaryKeyName, user.email])
@@ -44,25 +46,32 @@ export const createUser = async (userData: UserCreate, kv: Deno.Kv): Promise<Use
         .set(primaryKey, newUser)
         .set(secondaryKey,newUser)
         .commit();
+
+    const opsRes = ZOpsResult.parse(res)
     
-    if (!res.ok) {
-        return ZDbError.parse({
+    if (!opsRes.ok) {
+        return ZOpsResult.parse({
+            ...opsRes,
             error: "USER_EXISTS",
             message: "Create user failed. User already exists."
         })
     }
 
-    return newUser
+    return ZOpsResult.parse({
+        ...opsRes,
+        value: newUser
+    })
 }
 
 export const getUserById = async (
     uid: Uuid, 
     kv: Deno.Kv
-): Promise<User | DbError | null> => {
+): Promise<OpsResult> => {
     const uid_validate = ZUuid.safeParse(uid)
 
     if (!uid_validate.success) {
-        return ZDbError.parse({
+        return ZOpsResult.parse({
+            ok: false,
             error: uid_validate.error,
             message: "Invalid UID format"
         })
@@ -70,17 +79,23 @@ export const getUserById = async (
 
     const primaryKey = ZUsersTbKey.parse([primaryKeyName, uid])
 
-    return (await kv.get<User>(primaryKey)).value
+    const { value, versionstamp } = await kv.get<User>(primaryKey)
+    return ZOpsResult.parse({
+        ok: true,
+        value,
+        versionstamp
+    })
 }
 
 export const getUserByEmail = async (
     email: Email,
     kv: Deno.Kv
-): Promise<User | DbError | null> => {
+): Promise<OpsResult> => {
     const email_validate = ZEmail.safeParse(email)
 
     if (!email_validate.success) {
-        return ZDbError.parse(({
+        return ZOpsResult.parse(({
+            ok: false,
             error: email_validate.error,
             message: "Invalid email"
         }))
@@ -88,14 +103,20 @@ export const getUserByEmail = async (
 
     const secondaryKey = ZUsersEmailTbKey.parse([secondaryKeyName, email])
     
-    return (await kv.get<User>(secondaryKey)).value
+    const { value, versionstamp } = await kv.get<User>(secondaryKey)
+    return ZOpsResult.parse({
+        ok: true,
+        value,
+        versionstamp
+    })
 }
 
-export const deleteUser = async ( uid: Uuid, kv: Deno.Kv ): Promise<DbError | undefined> => {
+export const deleteUser = async ( uid: Uuid, kv: Deno.Kv ): Promise<OpsResult | undefined> => {
     const uid_validate = ZUuid.safeParse(uid)
 
     if (!uid_validate.success) {
-        return ZDbError.parse({
+        return ZOpsResult.parse({
+            ok: false,
             error: uid_validate.error,
             message: "Invalid UID format"
         })
