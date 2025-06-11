@@ -2,6 +2,7 @@ import { z } from "zod/v4";
 import { ulid } from "jsr:@std/ulid";
 import * as schemas from "../deno_kv/schemas.ts"
 import { assertEquals } from "$std/assert/assert_equals.ts";
+import { getUserByEmail } from "../deno_kv/operations/users.ts";
 
 type UserCreate = z.infer<typeof schemas.ZUserCreate>
 type User = z.infer<typeof schemas.ZUser>
@@ -13,8 +14,8 @@ const primaryKeyName = schemas.ZDbKeys.enum.Users
 const secondaryKeyName = schemas.ZDbKeys.enum.UsersByEmail
 
 const createUserTest = async (
-    kv: Deno.Kv,
-    userData: UserCreate
+    userData: UserCreate,
+    kv: Deno.Kv
 ): Promise<User | DbError> => {
         const user_parse = schemas.ZUserCreate.safeParse(userData)
 
@@ -108,7 +109,7 @@ const deleteUserTest = async ( uid: Uuid, kv: Deno.Kv ): Promise<DbError | undef
 Deno.test("Users", async (t) => {
     const kv = await Deno.openKv(":memory:")
 
-    await t.step("Create New User", async () => {
+    await t.step("Create User with ID", async () => {
         const newUser = schemas.ZUserCreate.parse({
             id: ulid(),
             first_name: "Test",
@@ -116,8 +117,25 @@ Deno.test("Users", async (t) => {
             email: "test@example.com"
         })
 
-        const res = await createUserTest(kv, newUser);
+        const res = await createUserTest(newUser,kv);
         assertEquals(res, newUser as User)
+    })
+
+    await t.step("Get existing user", async () => {
+        const newUser = schemas.ZUserCreate.parse({
+            id: ulid(),
+            first_name: "Test",
+            last_name: "User",
+            email: "test@example.com"
+        })
+
+        const resNewUser = await createUserTest(newUser,kv);
+
+        const testEmail = "test@example.com"
+
+
+        assertEquals(resEmail,testEmail)
+
     })
 
     kv.close()
