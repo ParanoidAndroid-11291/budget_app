@@ -1,5 +1,13 @@
 import { ulid } from "jsr:@std/ulid";
-import { ZUser, ZUserCreate, ZUuid, ZEmail, ZDbKeys, ZDbError } from "../schemas.ts";
+import { 
+    ZUser, 
+    ZUserCreate, 
+    ZUuid, 
+    ZEmail, 
+    ZDbKeys,
+    ZUsersTbKey,
+    ZUsersEmailTbKey,
+    ZDbError } from "../schemas.ts";
 import { z } from "zod/v4";
 
 const primaryKeyName = ZDbKeys.enum.Users;
@@ -27,8 +35,8 @@ export const createUser = async (userData: UserCreate, kv: Deno.Kv): Promise<Use
     const uid = user.id ?? ulid()
     const newUser: User = {...user, id: uid}
 
-    const primaryKey = [primaryKeyName, uid]
-    const secondaryKey = [secondaryKeyName, user.email]
+    const primaryKey = ZUsersTbKey.parse([primaryKeyName, uid])
+    const secondaryKey = ZUsersEmailTbKey.parse([secondaryKeyName, user.email])
 
     const res = await kv.atomic()
         .check({ key: primaryKey, versionstamp: null})
@@ -60,7 +68,9 @@ export const getUserById = async (
         })
     }
 
-    return (await kv.get<User>([primaryKeyName, uid])).value
+    const primaryKey = ZUsersTbKey.parse([primaryKeyName, uid])
+
+    return (await kv.get<User>(primaryKey)).value
 }
 
 export const getUserByEmail = async (
@@ -75,8 +85,10 @@ export const getUserByEmail = async (
             message: "Invalid email"
         }))
     }
+
+    const secondaryKey = ZUsersEmailTbKey.parse([secondaryKeyName, email])
     
-    return (await kv.get<User>([secondaryKeyName, email])).value
+    return (await kv.get<User>(secondaryKey)).value
 }
 
 export const deleteUser = async ( uid: Uuid, kv: Deno.Kv ): Promise<DbError | undefined> => {
@@ -90,13 +102,15 @@ export const deleteUser = async ( uid: Uuid, kv: Deno.Kv ): Promise<DbError | un
     }
 
     let res = { ok: false }
+    const primaryKey = ZUsersTbKey.parse([primaryKeyName, uid])
     do {
-        const getUser = await kv.get<User>([primaryKeyName,uid]);
+        const getUser = await kv.get<User>(primaryKey);
         if (getUser.value === null) return;
+        const secondaryKey = ZUsersEmailTbKey.parse([secondaryKeyName, getUser.value.email])
         res = await kv.atomic()
         .check(getUser)
-        .delete([primaryKeyName, uid])
-        .delete([secondaryKeyName,getUser.value.email])
+        .delete(primaryKey)
+        .delete(secondaryKey)
         .commit();
     } while (!res.ok);
 
