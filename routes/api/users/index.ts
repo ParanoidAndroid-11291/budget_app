@@ -104,7 +104,7 @@ export const handler: Handlers<any,State> = {
         const { kv } = ctx.state.context;
         const headers = new Headers([["Content-Type","application/json"]])
 
-        const user = ZUser.safeParse(user_data)
+        const user = ZUserCreate.safeParse(user_data)
 
         if (!user.success) {
             return new Response(JSON.stringify(user.error),{

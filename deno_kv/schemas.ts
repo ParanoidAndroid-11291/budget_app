@@ -29,7 +29,6 @@ export const ZTransactionsDateTbKey = z.tuple([ZUuid,z.literal("transactionsByDa
 */
 
 export const ZUserCreate = z.strictObject({
-    id: z.optional(ZUuid),
     first_name: z.string(),
     last_name: z.string(),
     email: z.email()

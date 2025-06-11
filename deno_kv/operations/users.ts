@@ -32,7 +32,7 @@ export const createUser = async (userData: UserCreate, kv: Deno.Kv): Promise<Use
 
     const user = user_parse.data
 
-    const uid = user.id ?? ulid()
+    const uid = ulid()
     const newUser: User = {...user, id: uid}
 
     const primaryKey = ZUsersTbKey.parse([primaryKeyName, uid])

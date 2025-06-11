@@ -25,16 +25,15 @@ type DbError = z.infer<typeof schemas.ZDbError>
 Deno.test("Users", async (t) => {
     const kv = await Deno.openKv(":memory:")
 
-    await t.step("Create User with ID", async () => {
+    await t.step("Create User", async () => {
         const newUser = schemas.ZUserCreate.parse({
-            id: ulid(),
             first_name: "Test",
             last_name: "User",
             email: "test@example.com"
         })
 
-        const res = await createUser(newUser,kv);
-        assertEquals(res, newUser as User)
+        const user = await createUser(newUser,kv);
+        assert(schemas.ZUser.safeParse(user).success,JSON.stringify(user))
     })
 
     await t.step("Get existing user", async () => {
