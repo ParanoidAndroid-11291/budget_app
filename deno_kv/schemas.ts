@@ -7,19 +7,22 @@ import { z } from "zod/v4"
 enum DbKeysEnum {
     Users = "users",
     UsersByEmail = "usersByEmail",
-    Transactions = "transactions"
+    Transactions = "transactions",
+    TransactionsByDate = "transactionsByDate"
 }
 
 export const ZDbKeys = z.enum(DbKeysEnum)
 export const ZCurrency = z.enum(["US","CA"])
 
 export const ZUuid = z.string().regex(/[0-7][0-9A-HJKMNP-TV-Z]{25}/gm)
-export const ZDatetime = z.iso.datetime()
+export const ZDate = z.iso.date()
 export const ZEmail = z.email()
 
 export const ZUsersTbKey = z.tuple([z.literal("users"),ZUuid])
 export const ZUsersEmailTbKey = z.tuple([z.literal("usersByEmail"),z.email()])
-export const ZTransactionsTbKey = z.tuple([ZUuid,z.literal("transactions")])
+
+export const ZTransactionsTbKey = z.tuple([ZUuid,z.literal("transactions"),ZUuid])
+export const ZTransactionsDateTbKey = z.tuple([ZUuid,z.literal("transactionsByDate"),ZDate,ZUuid])
 
 /* 
 * DB Ops Validation Schemas
@@ -33,10 +36,14 @@ export const ZUserCreate = z.strictObject({
 })
 
 export const ZTransactionCreate = z.strictObject({
+    date: z.iso.date(),
     amount: z.number(),
     currency: ZCurrency,
     comment: z.optional(z.string())
 })
+
+export const ZTransactionUpdate = ZTransactionCreate.partial()
+export const ZUserUpdate = ZUserCreate.partial()
 
 export const ZDbError = z.strictObject({
     error: z.any(),
@@ -50,7 +57,7 @@ export const ZDbError = z.strictObject({
 
 export const ZTransaction = z.strictObject({
     id: ZUuid,
-    timestamp: z.iso.datetime(),
+    date: z.iso.date(),
     amount: z.number(),
     currency: ZCurrency,
     comment: z.optional(z.string())
