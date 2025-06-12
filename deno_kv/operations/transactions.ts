@@ -28,7 +28,7 @@ type Uuid = z.infer<typeof ZUuid>
 type DbError = z.infer<typeof ZDbError>
 
 const validateUser = async (userId: Uuid, kv: Deno.Kv): Promise<User | DbError | null> => {
-    const getUser = await getUserById(userId,kv)
+    const getUser = await getUserById(userId,kv) as OpsResult
     if (!getUser.ok) return ZDbError.parse({
         error: getUser.error,
         message: getUser.message
@@ -216,18 +216,26 @@ export const updateTransaction = async (userId: Uuid, updateData: TransactionUpd
         //get record value, setup secondary key, and merge updates into existing record
         const transaction = value
         const dateKey = ZTransactionsDateTbKey.parse([userId,transactionDateTbKey,transaction.date,transaction.id])
-        const updatedTransaction = ZTransaction.parse(Object.assign(transaction,updateData))
+        const updatedTransaction = ZTransaction.safeParse({ ...transaction, ...updateData})
+
+        if (!updatedTransaction.success) {
+            return ZOpsResult.parse({
+                ok: false,
+                error: updatedTransaction.error,
+                message: "Could not merge updates"
+            })
+        }
 
         //check that record hasn't changed since retrieved, if not - set primary and secondary key to updated record
         //if check fails, operation will be retired and try again until successful
         res = await kv.atomic()
             .check({key, versionstamp})
-            .set(primaryKey,updatedTransaction)
-            .set(dateKey,updatedTransaction)
+            .set(primaryKey,updatedTransaction.data)
+            .set(dateKey,updatedTransaction.data)
             .commit()
         
         if (res.ok) {
-            res.value = updateTransaction
+            res.value = updatedTransaction.data
             break
         }
 

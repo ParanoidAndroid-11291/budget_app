@@ -113,7 +113,7 @@ Deno.test("Transactions", async (t) => {
     })
 
     await t.step("User gets transaction by id", async () => {
-        const userRes = await getUserByEmail("test@example.com",kv)
+        const userRes = await getUserByEmail("test@example.com",kv) as OpsResult
         if (!userRes.ok) throw new Error(JSON.stringify(userRes))
         const user = userRes.value as User
 
@@ -136,7 +136,7 @@ Deno.test("Transactions", async (t) => {
     })
 
     await t.step("User gets list of transactions by date", async () => {
-        const userRes = await getUserByEmail("test@example.com",kv)
+        const userRes = await getUserByEmail("test@example.com",kv) as OpsResult
         if (!userRes.ok) throw new Error(JSON.stringify(userRes))
         const user = userRes.value as User
 
@@ -151,7 +151,7 @@ Deno.test("Transactions", async (t) => {
     })
 
     await t.step("User updates existing transaction", async () => {
-        const userRes = await getUserByEmail("test@example.com",kv)
+        const userRes = await getUserByEmail("test@example.com",kv) as OpsResult
         if (!userRes.ok) throw new Error(JSON.stringify(userRes))
         const user = userRes.value as User
 
@@ -170,8 +170,9 @@ Deno.test("Transactions", async (t) => {
             comment: "Updated transaction"
         })
 
-        const transUpdateRes = await updateTransaction(user.id, transactionUpdateData, kv)
+        const transUpdateRes = await updateTransaction(user.id, transactionUpdateData, kv) as OpsResult
         if (!transUpdateRes.ok) throw new Error(JSON.stringify(transUpdateRes))
+
         const updatedTransaction = transUpdateRes.value as Transaction
 
         assert(schemas.ZTransaction.safeParse(updatedTransaction).success)
