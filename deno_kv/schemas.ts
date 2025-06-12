@@ -22,7 +22,45 @@ export const ZUsersTbKey = z.tuple([z.literal("users"),ZUuid])
 export const ZUsersEmailTbKey = z.tuple([z.literal("usersByEmail"),z.email()])
 
 export const ZTransactionsTbKey = z.tuple([ZUuid,z.literal("transactions"),ZUuid])
+export const ZTransactionsSetTbKey = z.tuple([ZUuid,z.literal("transactions")])
 export const ZTransactionsDateTbKey = z.tuple([ZUuid,z.literal("transactionsByDate"),ZDate,ZUuid])
+export const ZTransactionsDateSetTbKey = z.tuple([ZUuid,z.literal("transactionsByDate")],ZDate)
+
+export const ZTbOpsKeyEnum = z.enum([
+    "UserSingleton",
+    "EmailUserSingleton",
+    "TransactionSingleton",
+    "TransactionDateSingleton",
+    "TransactionsSet",
+    "TransactionsDateSet"
+])
+
+export const ZTbOpsKeys = z.discriminatedUnion("opsKey", [
+    z.strictObject({ 
+        opsKey: z.literal(ZTbOpsKeyEnum.enum.UserSingleton), 
+        tbKey: ZUsersTbKey 
+    }),
+    z.strictObject({ 
+        opsKey: z.literal(ZTbOpsKeyEnum.enum.EmailUserSingleton), 
+        tbKey: ZUsersEmailTbKey 
+    }),
+    z.strictObject({ 
+        opsKey: z.literal(ZTbOpsKeyEnum.enum.TransactionSingleton), 
+        tbKey: ZTransactionsTbKey 
+    }),
+    z.strictObject({ 
+        opsKey: z.literal(ZTbOpsKeyEnum.enum.TransactionDateSingleton), 
+        tbKey: ZTransactionsDateTbKey 
+    }),
+    z.strictObject({ 
+        opsKey: z.literal(ZTbOpsKeyEnum.enum.TransactionsSet), 
+        tbKey: ZTransactionsSetTbKey 
+    }),
+    z.strictObject({ 
+        opsKey: z.literal(ZTbOpsKeyEnum.enum.TransactionsDateSet), 
+        tbKey: ZTransactionsDateSetTbKey 
+    })
+])
 
 export const ZOpsResult = z.discriminatedUnion("ok", [
     z.object({ ok: z.literal(true), value: z.any(), versionstamp: z.string() }).partial({ value: true, versionstamp: true }),
