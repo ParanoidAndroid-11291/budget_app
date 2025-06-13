@@ -7,18 +7,27 @@ import {
     ZDbKeys,
     ZUsersTbKey,
     ZUsersEmailTbKey,
-    ZOpsResult
+    ZOpsResult,
+    getTbKey
  } from "../schemas.ts";
 import { z } from "zod/v4";
 
 const primaryKeyName = ZDbKeys.enum.Users;
 const secondaryKeyName = ZDbKeys.enum.UsersByEmail;
 
+/*
+ * INFERED TYPES 
+ */
+
 type User = z.infer<typeof ZUser>
 type UserCreate = z.infer<typeof ZUserCreate>
 type OpsResult = z.infer<typeof ZOpsResult>
 type Uuid = z.infer<typeof ZUuid>
 type Email = z.infer<typeof ZEmail>
+
+/*
+* CRUD Operations 
+*/
 
 export const createUser = async (userData: UserCreate, kv: Deno.Kv): Promise<OpsResult> => {
 

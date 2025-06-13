@@ -15,7 +15,8 @@ import {
     ZTransactionsSetTbKey,
     ZTransactionsDateSetTbKey,
     ZTbOpsKeys,
-    ZTbOpsKeyEnum
+    ZTbOpsKeyEnum,
+    getTbKey
 } from "../schemas.ts"
 import { getUserById } from "./users.ts";
 
@@ -50,107 +51,6 @@ type TransactionsDateSetKey = z.infer<typeof ZTransactionsDateSetTbKey>
 /*
 * UTILITY FUNCTIONS 
  */
-
-const GetTbKeyArgs = z.object({
-    userId: ZUuid,
-    transactionId: ZUuid,
-    date: ZDate
-}).partial({ transactionId: true, date: true })
-
-type GetTbKeyArgs = z.infer<typeof GetTbKeyArgs>
-
-/**
- * Returns the appropriate key(s) for the desired operations
- * @param {Array<TbOpsKeyEnum>} opsKey - Array of 1 or more ops keys to retrieve appropriate tb keys
- * @param {GetTbKeyArgs} keyArgs - Object for additional arguments depending on the type of operation needed
- * @returns {TbOpsKey | Array<TbOpsKey> | undefined} - If opsKey contains 1 value, then TbOpsKey will be returned, otherwise an array will be returned.
- * @throws {Error} - Raises an error for: invalid opsKey values, empty opsKey array, and if any required keyArgs are missing, undefined, or mistyped.
- */
-const getTbKey = (
-    opsKey: Array<TbOpsKeyEnum>, 
-    keyArgs: GetTbKeyArgs
-): TbOpsKey | Array<TbOpsKey> | undefined => {
-    const args = GetTbKeyArgs.safeParse(keyArgs).success ? keyArgs : (() => {throw new Error("Invalid keyArgs")})
-    const { userId, transactionId, date } = args as GetTbKeyArgs
-
-    if (opsKey.length > 1) {
-        const keysList: Array<TbOpsKey> = []
-
-        opsKey.map((key) => {
-            switch (key) {
-                case transactionSingletonOp:
-                    if (!transactionId) throw new Error(`transactionId required for ${opsKey} tb key`)
-                    keysList.push(ZTbOpsKeys.parse({ 
-                        opsKey: key, 
-                        tbKey: ZTransactionsTbKey.parse([userId,transactionTbKey,transactionId])
-                        })
-                    )
-                    break
-                case transactionDateSingletonOp:
-                    if (!date || !transactionId) throw new Error(`transactionId and date required for ${opsKey} tb key`)
-                    keysList.push(ZTbOpsKeys.parse({
-                        opsKey: key,
-                        tbKey: ZTransactionsDateTbKey.parse([userId,transactionDateTbKey,date,transactionId])
-                        })
-                    )
-                    break
-                case transactionsSetOp:
-                    keysList.push(ZTbOpsKeys.parse({ 
-                        opsKey: key, 
-                        tbKey: ZTransactionsSetTbKey.parse([userId,transactionTbKey])
-                        })
-                    )
-                    break
-                case transactionDateSetOp:
-                    if (!date) throw new Error(`date required for ${opsKey} tb key`)
-                    keysList.push(ZTbOpsKeys.parse({
-                        opsKey: key,
-                        tbKey: ZTransactionsDateSetTbKey.parse([userId,transactionDateTbKey,date])
-                        })
-                    )
-                    break
-                default:
-                    () => {throw new Error("Invalid opsKey")}
-            }
-        })
-
-        return keysList
-
-    } else if (opsKey.length === 1){
-        const key = opsKey.pop()
-        switch (key) {
-            case transactionSingletonOp:
-                if (!transactionId) throw new Error(`transactionId required for ${opsKey} tb key`)
-                return ZTbOpsKeys.parse({ 
-                    opsKey: key, 
-                    tbKey: ZTransactionsTbKey.parse([userId,transactionTbKey,transactionId])
-                    })
-                
-            case transactionDateSingletonOp:
-                if (!date || !transactionId) throw new Error(`transactionId and date required for ${opsKey} tb key`)
-                return ZTbOpsKeys.parse({
-                    opsKey: key,
-                    tbKey: ZTransactionsDateTbKey.parse([userId,transactionDateTbKey,date,transactionId])
-                    })
-                
-            case transactionsSetOp:
-                return ZTbOpsKeys.parse({ 
-                    opsKey: key, 
-                    tbKey: ZTransactionsSetTbKey.parse([userId,transactionTbKey])
-                    })
-
-            case transactionDateSetOp:
-                if (!date) throw new Error(`date required for ${opsKey} tb key`)
-                return ZTbOpsKeys.parse({
-                    opsKey: key,
-                    tbKey: ZTransactionsDateSetTbKey.parse([userId,transactionDateTbKey,date])
-                    })
-
-            default:
-                () => {throw new Error("Invalid opsKey")}
-        }
-    } else { throw new Error("must provide at least 1 value in opsKey array") }
-}
 
 const validateUser = async (userId: Uuid, kv: Deno.Kv): Promise<User | DbError | null> => {
     const getUser = await getUserById(userId,kv) as OpsResult
