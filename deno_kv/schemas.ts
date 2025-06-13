@@ -72,7 +72,6 @@ export const ZDbError = z.strictObject({
     message: z.string()
 })
 
-
 /*
 * Users Validation Schemas 
  */
@@ -144,7 +143,7 @@ const GetTbKeyArgs = z.object({
     email: ZEmail,
     transactionId: ZUuid,
     date: ZDate
-}).partial({ email: true, transactionId: true, date: true })
+}).partial()
 
 type GetTbKeyArgs = z.infer<typeof GetTbKeyArgs>
 type TbOpsKeyEnum = z.infer<typeof ZTbOpsKeyEnum>
@@ -183,6 +182,7 @@ export const getTbKey = (
         opsKey.map((key) => {
             switch (key) {
                 case userSingletonOp:
+                    if (!userId) throw new Error(`user ID required for ${opsKey} tb key`)
                     keysList.push(ZTbOpsKeys.parse({
                             opsKey: key,
                             tbKey: ZUsersTbKey.parse([userTbKey,userId])
@@ -196,7 +196,7 @@ export const getTbKey = (
                     }))
                     break
                 case transactionSingletonOp:
-                    if (!transactionId) throw new Error(`transactionId required for ${opsKey} tb key`)
+                    if (!transactionId || !userId) throw new Error(`transactionId and user ID required for ${opsKey} tb key`)
                     keysList.push(ZTbOpsKeys.parse({ 
                         opsKey: key, 
                         tbKey: ZTransactionsTbKey.parse([userId,transactionTbKey,transactionId])
@@ -204,22 +204,16 @@ export const getTbKey = (
                     )
                     break
                 case transactionDateSingletonOp:
-                    if (!date || !transactionId) throw new Error(`transactionId and date required for ${opsKey} tb key`)
+                    if (!date || !transactionId || !userId) throw new Error(`transactionId, date, and user ID required for ${opsKey} tb key`)
                     keysList.push(ZTbOpsKeys.parse({
                         opsKey: key,
                         tbKey: ZTransactionsDateTbKey.parse([userId,transactionDateTbKey,date,transactionId])
                         })
                     )
                     break
-                case transactionsSetOp:
-                    keysList.push(ZTbOpsKeys.parse({ 
-                        opsKey: key, 
-                        tbKey: ZTransactionsSetTbKey.parse([userId,transactionTbKey])
-                        })
-                    )
-                    break
+
                 case transactionDateSetOp:
-                    if (!date) throw new Error(`date required for ${opsKey} tb key`)
+                    if (!date || !userId) throw new Error(`date and user ID required for ${opsKey} tb key`)
                     keysList.push(ZTbOpsKeys.parse({
                         opsKey: key,
                         tbKey: ZTransactionsDateSetTbKey.parse([userId,transactionDateTbKey,date])
@@ -237,6 +231,7 @@ export const getTbKey = (
         const key = opsKey.pop()
         switch (key) {
             case userSingletonOp:
+                if (!userId) throw new Error(`user ID required for ${opsKey} tb key`)
                 return ZTbOpsKeys.parse({
                         opsKey: key,
                         tbKey: ZUsersTbKey.parse([userTbKey,userId])
@@ -250,27 +245,21 @@ export const getTbKey = (
                 })
 
             case transactionSingletonOp:
-                if (!transactionId) throw new Error(`transactionId required for ${opsKey} tb key`)
+                if (!transactionId || !userId) throw new Error(`transactionId and user ID required for ${opsKey} tb key`)
                 return ZTbOpsKeys.parse({ 
                     opsKey: key, 
                     tbKey: ZTransactionsTbKey.parse([userId,transactionTbKey,transactionId])
                 })
                 
             case transactionDateSingletonOp:
-                if (!date || !transactionId) throw new Error(`transactionId and date required for ${opsKey} tb key`)
+                if (!date || !transactionId || !userId) throw new Error(`transactionId, date, and user ID required for ${opsKey} tb key`)
                 return ZTbOpsKeys.parse({
                     opsKey: key,
                     tbKey: ZTransactionsDateTbKey.parse([userId,transactionDateTbKey,date,transactionId])
                 })
-                
-            case transactionsSetOp:
-                return ZTbOpsKeys.parse({ 
-                    opsKey: key, 
-                    tbKey: ZTransactionsSetTbKey.parse([userId,transactionTbKey])
-                })
 
             case transactionDateSetOp:
-                if (!date) throw new Error(`date required for ${opsKey} tb key`)
+                if (!date || !userId) throw new Error(`date and user ID required for ${opsKey} tb key`)
                 return ZTbOpsKeys.parse({
                     opsKey: key,
                     tbKey: ZTransactionsDateSetTbKey.parse([userId,transactionDateTbKey,date])

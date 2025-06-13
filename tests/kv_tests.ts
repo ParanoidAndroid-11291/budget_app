@@ -12,7 +12,8 @@ import {
     getTransactionsByDate,
     getAllTransactions,
     updateTransaction, 
-    deleteTransaction
+    deleteTransaction,
+    getTransactionsByDateRange
 } from "../deno_kv/operations/transactions.ts"
 import { assertEquals } from "$std/assert/assert_equals.ts";
 import { assert } from "$std/assert/assert.ts";
@@ -75,7 +76,7 @@ Deno.test("Users", async (t) => {
     await t.step("Delete user", async () => {
         const userRes = await getUserByEmail("test@example.com",kv) as OpsResult
         if (!userRes.ok) throw new Error(JSON.stringify(userRes))
-            const user = userRes.value as User
+        const user = userRes.value as User
 
         const res = await deleteUser(user.id,kv)
         assertEquals(res,undefined)
@@ -151,6 +152,31 @@ Deno.test("Transactions", async (t) => {
         
         const transactionsList = res.value as Array<Transaction>
         assertEquals(2, transactionsList.length)
+
+    })
+
+    await t.step("User gets transactions by date range", async () => {
+        const userRes = await getUserByEmail("test@example.com",kv) as OpsResult
+        if (!userRes.ok) throw new Error(JSON.stringify(userRes))
+        const user = userRes.value as User
+        
+        const yesterday = moment.utc(new Date()).subtract(1, 'd').format('YYYY-MM-DD')
+
+        const testTransactionInput = schemas.ZTransactionCreate.parse({
+            date: yesterday,
+            amount: 20.00,
+            currency: "US",
+            comment: "date range test"
+        })
+
+        const createTransactionRes = await createTransaction(user.id,testTransactionInput,kv)
+        if (!createTransactionRes.ok) throw new Error(JSON.stringify(createTransactionRes))
+        
+        const res = await getTransactionsByDateRange(user.id, yesterday, moment.utc(new Date()).format('YYYY-MM-DD'), kv) as OpsResult
+        if (!res.ok) throw new Error(JSON.stringify(res))
+
+        const transactionsList = res.value as Array<Transaction>
+        assertEquals(3, transactionsList.length)
 
     })
 

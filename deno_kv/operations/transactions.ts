@@ -41,8 +41,6 @@ type Date = z.infer<typeof ZDate>
 type Uuid = z.infer<typeof ZUuid>
 type DbError = z.infer<typeof ZDbError>
 type TbOpsKey = z.infer<typeof ZTbOpsKeys>
-type TbOpsKeyEnum = z.infer<typeof ZTbOpsKeyEnum>
-type DbKeys = z.infer<typeof ZDbKeys>
 type TransactionSingletonKey = z.infer<typeof ZTransactionsTbKey>
 type TransactionDateSingletonKey = z.infer<typeof ZTransactionsDateTbKey>
 type TransactionsSetKey = z.infer<typeof ZTransactionsSetTbKey>
@@ -195,6 +193,33 @@ export const getTransactionsByDate = async (userId: Uuid, date: Date, kv: Deno.K
     for await (const { value } of iter) {
         transactions.push(value)
     }
+
+    return ZOpsResult.parse({
+        ok: true,
+        value: transactions
+    })
+}
+
+export const getTransactionsByDateRange = async (userId: Uuid, startDate: Date, endDate: Date, kv: Deno.Kv): Promise<OpsResult> => {
+    const user = await validateUser(userId, kv)
+
+    if (!user) return ZOpsResult.parse({
+        ok: false,
+        error: "RECORD_NOT_FOUND",
+        message: `No user found for id ${userId}`
+    })
+
+    const prefix = [userId, transactionDateTbKey]
+    const startKey = getTbKey([transactionDateSetOp], { userId, date: startDate }) as TbOpsKey
+    const endKey = getTbKey([transactionDateSetOp], { userId, date: endDate }) as TbOpsKey
+
+    const start = startKey.tbKey as TransactionsDateSetKey
+    const end = endKey.tbKey as TransactionsDateSetKey
+
+    const transactions = []
+    const iter = kv.list<Transaction>({ prefix, start, end})
+
+    for await (const transaction of iter) transactions.push(transaction)
 
     return ZOpsResult.parse({
         ok: true,

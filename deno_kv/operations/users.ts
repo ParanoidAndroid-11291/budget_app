@@ -3,27 +3,31 @@ import {
     ZUser, 
     ZUserCreate, 
     ZUuid, 
-    ZEmail, 
-    ZDbKeys,
+    ZEmail,
     ZUsersTbKey,
     ZUsersEmailTbKey,
     ZOpsResult,
+    ZTbOpsKeyEnum,
+    ZTbOpsKeys,
     getTbKey
  } from "../schemas.ts";
 import { z } from "zod/v4";
 
-const primaryKeyName = ZDbKeys.enum.Users;
-const secondaryKeyName = ZDbKeys.enum.UsersByEmail;
+const userSingletonOp = ZTbOpsKeyEnum.enum.UserSingleton
+const userEmailSingletonOp = ZTbOpsKeyEnum.enum.EmailUserSingleton
 
 /*
  * INFERED TYPES 
  */
 
 type User = z.infer<typeof ZUser>
+type UsersTbKey = z.infer<typeof ZUsersTbKey>
+type UsersEmailTbKey = z.infer<typeof ZUsersEmailTbKey>
 type UserCreate = z.infer<typeof ZUserCreate>
 type OpsResult = z.infer<typeof ZOpsResult>
 type Uuid = z.infer<typeof ZUuid>
 type Email = z.infer<typeof ZEmail>
+type TbOpsKeys = z.infer<typeof ZTbOpsKeys>
 
 /*
 * CRUD Operations 
@@ -46,8 +50,12 @@ export const createUser = async (userData: UserCreate, kv: Deno.Kv): Promise<Ops
     const uid = ulid()
     const newUser: User = {...user, id: uid }
 
-    const primaryKey = ZUsersTbKey.parse([primaryKeyName, uid])
-    const secondaryKey = ZUsersEmailTbKey.parse([secondaryKeyName, user.email])
+    const tbKeys  = getTbKey(
+        [userSingletonOp, userEmailSingletonOp],
+        { userId: newUser.id, email: newUser.email }) as Array<TbOpsKeys>
+    
+    const primaryKey = tbKeys.find(({ opsKey }) => opsKey === userSingletonOp)?.tbKey as UsersTbKey
+    const secondaryKey = tbKeys.find(({ opsKey }) => opsKey == userEmailSingletonOp)?.tbKey as UsersEmailTbKey
 
     const res = await kv.atomic()
         .check({ key: primaryKey, versionstamp: null})
@@ -86,7 +94,8 @@ export const getUserById = async (
         })
     }
 
-    const primaryKey = ZUsersTbKey.parse([primaryKeyName, uid])
+    const tbKeys = getTbKey([userSingletonOp], { userId: uid }) as TbOpsKeys
+    const primaryKey = tbKeys.tbKey as UsersTbKey
 
     const { value, versionstamp } = await kv.get<User>(primaryKey)
     return ZOpsResult.parse({
@@ -110,7 +119,8 @@ export const getUserByEmail = async (
         }))
     }
 
-    const secondaryKey = ZUsersEmailTbKey.parse([secondaryKeyName, email])
+    const tbKeys = getTbKey([userEmailSingletonOp], { email }) as TbOpsKeys
+    const secondaryKey = tbKeys.tbKey as UsersEmailTbKey
     
     const { value, versionstamp } = await kv.get<User>(secondaryKey)
     return ZOpsResult.parse({
@@ -132,11 +142,14 @@ export const deleteUser = async ( uid: Uuid, kv: Deno.Kv ): Promise<OpsResult | 
     }
 
     let res = { ok: false }
-    const primaryKey = ZUsersTbKey.parse([primaryKeyName, uid])
+    const tbKeys = getTbKey([userSingletonOp], { userId: uid }) as TbOpsKeys
+    const primaryKey = tbKeys.tbKey as UsersTbKey
     do {
         const getUser = await kv.get<User>(primaryKey);
         if (getUser.value === null) return;
-        const secondaryKey = ZUsersEmailTbKey.parse([secondaryKeyName, getUser.value.email])
+
+        const tbKeys = getTbKey([userEmailSingletonOp], { email: getUser.value.email }) as TbOpsKeys
+        const secondaryKey = tbKeys.tbKey as UsersEmailTbKey
         res = await kv.atomic()
         .check(getUser)
         .delete(primaryKey)
