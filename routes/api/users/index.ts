@@ -6,13 +6,19 @@ import {
     getUserByEmail, 
     deleteUser
 } from "../../../deno_kv/operations/users.ts";
-import { ZUser, ZUserCreate, ZDbError } from "../../../deno_kv/schemas.ts";
-import { ApiResponse } from "../_response_schemas.ts";
+import { 
+    ZUserCreate,
+    ZUserUpdate,
+    ZOpsResult
+ } from "../../../deno_kv/schemas.ts";
+import { ApiResponse } from "../_api_schemas.ts";
 import { z } from "zod/v4";
 
-type User = z.infer<typeof ZUser>
+const PutOpsEnum = z.enum(["create","update"])
+
 type UserCreate = z.infer<typeof ZUserCreate>
-type DbError = z.infer<typeof ZDbError>
+type OpsResult = z.infer<typeof ZOpsResult>
+type UserUpdate = z.infer<typeof ZUserUpdate>
 
 
 export const handler: Handlers<any,State> = {
@@ -20,7 +26,7 @@ export const handler: Handlers<any,State> = {
         const params = new URL(req.url).searchParams;
         const headers = new Headers([["Content-Type","application/json"]])
 
-        let user: User | DbError | null = null;
+        let user: OpsResult;
         const { kv } = ctx.state.context;
 
         if (params.has('id')) {
@@ -65,19 +71,7 @@ export const handler: Handlers<any,State> = {
                 })
         }
 
-        if (!user) {
-            const error = ApiResponse.parse({
-                    success: false,
-                    message: "User not found"
-                })
-
-            return new Response(JSON.stringify(error),{
-                    status: 400,
-                    headers
-                })
-        }
-
-        if ("error" in user) {
+        if (!user.ok) {
             const error = ApiResponse.parse({
                     success: false,
                     message: user.message
@@ -91,7 +85,7 @@ export const handler: Handlers<any,State> = {
 
         const userRes = ApiResponse.parse({
             success: true,
-            data: user
+            data: user.value
         })
 
         return new Response(JSON.stringify(userRes),{
@@ -99,26 +93,16 @@ export const handler: Handlers<any,State> = {
             headers
         })
     },
-    async POST(req: Request, ctx: FreshContext<State>) {
-        const user_data = (await req.json()) as UserCreate;
+    async PUT(req: Request, ctx: FreshContext<State>) {
+        const params = new URL(req.url).searchParams;
         const { kv } = ctx.state.context;
         const headers = new Headers([["Content-Type","application/json"]])
 
-        const user = ZUserCreate.safeParse(user_data)
-
-        if (!user.success) {
-            return new Response(JSON.stringify(user.error),{
-                status: 400,
-                headers
-            })
-        }
-
-        const res = await createUser(user.data, kv);
-
-        if ("error" in res) {
+        const opsParse = PutOpsEnum.safeParse(params.get('op')?.toString())
+        if (!opsParse.success) {
             const error = ApiResponse.parse({
                 success: false,
-                message: res.message
+                message: opsParse.error
             })
 
             return new Response(JSON.stringify(error),{
@@ -126,13 +110,65 @@ export const handler: Handlers<any,State> = {
                 headers
             })
         }
+        const operation = opsParse.data
 
-        return new Response(JSON.stringify(res),{
-            status: 201,
-            headers
-        })
+        switch (operation) {
+            case PutOpsEnum.enum.create:
+                {
+                    const user_data = (await req.json()) as UserCreate;
 
+                    const user = ZUserCreate.safeParse(user_data)
 
+                    if (!user.success) {
+                        return new Response(JSON.stringify(user.error),{
+                            status: 400,
+                            headers
+                        })
+                    }
+
+                    const res = await createUser(user.data, kv) as OpsResult
+
+                    if (!res.ok) {
+                        const error = ApiResponse.parse({
+                            success: false,
+                            message: res.message
+                        })
+
+                        return new Response(JSON.stringify(error),{
+                            status: 400,
+                            headers
+                        })
+                    }
+
+                    const newUser = ApiResponse.parse({
+                        success: true,
+                        data: res.value
+                    })
+
+                    return new Response(JSON.stringify(newUser),{
+                        status: 201,
+                        headers
+                    })
+                }
+            case PutOpsEnum.enum.update:
+                {
+                    const user_data = (await req.json()) as UserUpdate
+                    const user = ZUserUpdate.safeParse(user_data)
+
+                    if (!user.success) {
+                        const error = ApiResponse.parse({
+                            success: false,
+                            message: user.error
+                        })
+
+                        return new Response(JSON.stringify(error),{
+                            status: 400,
+                            headers
+                        })
+                    }
+
+                }
+        }
     },
     async DELETE(req: Request, ctx: FreshContext<State>) {
         const params = new URL(req.url).searchParams;
@@ -155,7 +191,7 @@ export const handler: Handlers<any,State> = {
 
         const res = await deleteUser(id,kv);
 
-        if (res && "error" in res) {
+        if (res && !res.ok) {
             const error = ApiResponse.parse({
                 success: false,
                 message: res.message

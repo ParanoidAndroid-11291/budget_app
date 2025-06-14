@@ -9,7 +9,8 @@ import {
     ZOpsResult,
     ZTbOpsKeyEnum,
     ZTbOpsKeys,
-    getTbKey
+    getTbKey,
+    ZUserUpdate
  } from "../schemas.ts";
 import { z } from "zod/v4";
 
@@ -24,6 +25,7 @@ type User = z.infer<typeof ZUser>
 type UsersTbKey = z.infer<typeof ZUsersTbKey>
 type UsersEmailTbKey = z.infer<typeof ZUsersEmailTbKey>
 type UserCreate = z.infer<typeof ZUserCreate>
+type UserUpdate = z.infer<typeof ZUserUpdate>
 type OpsResult = z.infer<typeof ZOpsResult>
 type Uuid = z.infer<typeof ZUuid>
 type Email = z.infer<typeof ZEmail>
@@ -78,6 +80,61 @@ export const createUser = async (userData: UserCreate, kv: Deno.Kv): Promise<Ops
         ...opsRes,
         value: newUser
     })
+}
+
+export const updateUser = async ( updateData: UserUpdate, kv: Deno.Kv) => {
+    const checkData = ZUserCreate.safeParse(updateData)
+
+    if (!checkData.success) {
+        return ZOpsResult.parse({
+            ok: false,
+            error: checkData.error,
+            message: "Invalid update data"
+        })
+    }
+
+    const getPrimaryKey = getTbKey([userSingletonOp],{ userId: updateData.id }) as TbOpsKeys
+    const primaryKey = getPrimaryKey.tbKey as UsersTbKey
+    let res = ZOpsResult.parse({ ok: false })
+    do {
+        const userRes = await kv.get<User>(primaryKey)
+        if (!userRes.value) {
+            return ZOpsResult.parse({
+                ok: false,
+                error: "RECORD_NOT_FOUND",
+                message: "No record found for user update"
+            })
+        }
+
+        const user = userRes.value as User
+        const getEmailKey = getTbKey([userEmailSingletonOp], { email: user.email }) as TbOpsKeys
+        const emailKey = getEmailKey.tbKey
+        const userEmailRes = await kv.get<User>(emailKey)
+        if (!userEmailRes.value) {
+            return ZOpsResult.parse({
+                ok: false,
+                error: "RECORD_NOT_FOUND",
+                message: "No record found for user update"
+            })
+        }
+
+        const updatedUser = ZUser.parse({ ...user, ...updateData })
+
+        res = await kv.atomic()
+            .check(userRes)
+            .check(userEmailRes)
+            .set(primaryKey,updatedUser)
+            .set(emailKey,updatedUser)
+            .commit()
+
+        if (res.ok) {
+            res.value = updatedUser
+            break
+        }
+
+    }while(true)
+    
+    return res
 }
 
 export const getUserById = async (

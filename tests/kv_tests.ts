@@ -1,7 +1,8 @@
 import { z } from "zod/v4";
 import * as schemas from "../deno_kv/schemas.ts"
 import { 
-    createUser, 
+    createUser,
+    updateUser,
     getUserById, 
     getUserByEmail, 
     deleteUser 
@@ -70,7 +71,21 @@ Deno.test("Users", async (t) => {
     })
 
     await t.step("Update user", async () => {
-        assert(true,"Not implemented")
+        const testEmail = "test@example.com"
+
+        const resGetUserEmail = await getUserByEmail(testEmail,kv) as OpsResult
+        if (!resGetUserEmail.ok) throw new Error(JSON.stringify(resGetUserEmail))
+        
+        const userId = resGetUserEmail.value.id
+
+        const userUpdate = schemas.ZUserUpdate.parse({
+            id: userId,
+            last_name: "User-update"
+        })
+
+        const updateRes = await updateUser(userUpdate, kv)
+
+        
     })
 
     await t.step("Delete user", async () => {
@@ -113,6 +128,7 @@ Deno.test("Transactions", async (t) => {
         const transactionRes = await createTransaction(user.id,testTransactionInput,kv)
         if (!transactionRes.ok) throw new Error(JSON.stringify(transactionRes))
         const transaction = transactionRes.value as Transaction
+        console.debug("transaction",transaction)
 
         assert(schemas.ZTransaction.safeParse(transaction).success)
     })
@@ -151,6 +167,7 @@ Deno.test("Transactions", async (t) => {
         if (!res.ok) throw new Error(JSON.stringify(res))
         
         const transactionsList = res.value as Array<Transaction>
+        console.debug("transactionsList",transactionsList)
         assertEquals(2, transactionsList.length)
 
     })
@@ -160,10 +177,11 @@ Deno.test("Transactions", async (t) => {
         if (!userRes.ok) throw new Error(JSON.stringify(userRes))
         const user = userRes.value as User
         
-        const yesterday = moment.utc(new Date()).subtract(1, 'd').format('YYYY-MM-DD')
+        const startDate = moment.utc(new Date()).subtract(1, 'd').format('YYYY-MM-DD')
+        const endDate = moment.utc(new Date()).add(1, 'd').format('YYYY-MM-DD')
 
         const testTransactionInput = schemas.ZTransactionCreate.parse({
-            date: yesterday,
+            date: startDate,
             amount: 20.00,
             currency: "US",
             comment: "date range test"
@@ -172,10 +190,11 @@ Deno.test("Transactions", async (t) => {
         const createTransactionRes = await createTransaction(user.id,testTransactionInput,kv)
         if (!createTransactionRes.ok) throw new Error(JSON.stringify(createTransactionRes))
         
-        const res = await getTransactionsByDateRange(user.id, yesterday, moment.utc(new Date()).format('YYYY-MM-DD'), kv) as OpsResult
+        const res = await getTransactionsByDateRange(user.id, startDate, endDate, kv) as OpsResult
         if (!res.ok) throw new Error(JSON.stringify(res))
 
         const transactionsList = res.value as Array<Transaction>
+        console.debug("transactionsList",transactionsList)
         assertEquals(3, transactionsList.length)
 
     })
@@ -217,8 +236,9 @@ Deno.test("Transactions", async (t) => {
         const transListRes = await getAllTransactions(user.id,kv)
         if (!transListRes.ok) throw new Error(JSON.stringify(transListRes))
         const transactions = transListRes.value as Array<Transaction>
+        console.debug("transactions",transactions)
 
-        assertEquals(2,transactions.length)
+        assertEquals(3,transactions.length)
     })
 
     await t.step("User deletes existing transaction", async () => {

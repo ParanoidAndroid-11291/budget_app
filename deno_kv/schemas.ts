@@ -220,6 +220,13 @@ export const getTbKey = (
                         })
                     )
                     break
+                case transactionsSetOp:
+                    if (!userId) throw new Error(`user Id required for ${opsKey} tb key`)
+                    keysList.push(ZTbOpsKeys.parse({
+                        opsKey: key,
+                        tbKey: ZTransactionsSetTbKey.parse([userId, transactionTbKey])
+                    }))
+                    break
                 default:
                     () => {throw new Error("Invalid opsKey")}
             }
@@ -264,6 +271,13 @@ export const getTbKey = (
                     opsKey: key,
                     tbKey: ZTransactionsDateSetTbKey.parse([userId,transactionDateTbKey,date])
                 })
+
+            case transactionsSetOp:
+                    if (!userId) throw new Error(`user Id required for ${opsKey} tb key`)
+                    return ZTbOpsKeys.parse({
+                        opsKey: key,
+                        tbKey: ZTransactionsSetTbKey.parse([userId, transactionTbKey])
+                    })
 
             default:
                 () => {throw new Error("Invalid opsKey")}

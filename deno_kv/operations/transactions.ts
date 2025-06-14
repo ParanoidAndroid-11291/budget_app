@@ -187,8 +187,11 @@ export const getTransactionsByDate = async (userId: Uuid, date: Date, kv: Deno.K
             message: "Invalid date format"
         })
     }
+
+    const prefixKey = getTbKey([transactionDateSetOp],{ userId, date }) as TbOpsKey
+    const prefix = prefixKey.tbKey as TransactionsDateSetKey
     
-    const iter = kv.list<Transaction>({ prefix: [userId,transactionDateTbKey,date] })
+    const iter = kv.list<Transaction>({ prefix })
     const transactions = []
     for await (const { value } of iter) {
         transactions.push(value)
@@ -200,6 +203,14 @@ export const getTransactionsByDate = async (userId: Uuid, date: Date, kv: Deno.K
     })
 }
 
+/** 
+ * Operation to return list of transactions for user between start and end dates
+ * @param { Uuid } userId - Id of user to retrieve transactions for
+ * @param { Date } startDate - Start date to retrieve transactions (inclusive)
+ * @param { Date } endDate - End date to retrieve transactions (exclusive)
+ * @param { Deno.Kv } kv - Deno KV database connection
+ * @returns { OpsResult } - Returns OpsResult with value being the array of transactions if successful
+ * */ 
 export const getTransactionsByDateRange = async (userId: Uuid, startDate: Date, endDate: Date, kv: Deno.Kv): Promise<OpsResult> => {
     const user = await validateUser(userId, kv)
 
@@ -209,17 +220,18 @@ export const getTransactionsByDateRange = async (userId: Uuid, startDate: Date, 
         message: `No user found for id ${userId}`
     })
 
-    const prefix = [userId, transactionDateTbKey]
     const startKey = getTbKey([transactionDateSetOp], { userId, date: startDate }) as TbOpsKey
     const endKey = getTbKey([transactionDateSetOp], { userId, date: endDate }) as TbOpsKey
+    console.debug("startKey",startKey)
+    console.debug("endKey",endKey)
 
     const start = startKey.tbKey as TransactionsDateSetKey
     const end = endKey.tbKey as TransactionsDateSetKey
 
     const transactions = []
-    const iter = kv.list<Transaction>({ prefix, start, end})
+    const iter = kv.list<Transaction>({start, end})
 
-    for await (const transaction of iter) transactions.push(transaction)
+    for await (const { value } of iter) transactions.push(value)
 
     return ZOpsResult.parse({
         ok: true,
@@ -241,7 +253,7 @@ export const getAllTransactions = async (userId: Uuid, kv: Deno.Kv): Promise<Ops
 
     const iter = kv.list<Transaction>({ prefix: opsKey })
     const transactions = []
-    for await (const res of iter) transactions.push(res)
+    for await (const { value } of iter) transactions.push(value)
 
     return ZOpsResult.parse({
         ok: true,
