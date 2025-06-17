@@ -82,8 +82,8 @@ export const createUser = async (userData: UserCreate, kv: Deno.Kv): Promise<Ops
     })
 }
 
-export const updateUser = async ( updateData: UserUpdate, kv: Deno.Kv) => {
-    const checkData = ZUserCreate.safeParse(updateData)
+export const updateUser = async ( updateData: UserUpdate, kv: Deno.Kv): Promise<OpsResult> => {
+    const checkData = ZUserUpdate.safeParse(updateData)
 
     if (!checkData.success) {
         return ZOpsResult.parse({

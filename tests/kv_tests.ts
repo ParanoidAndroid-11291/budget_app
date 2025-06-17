@@ -83,7 +83,11 @@ Deno.test("Users", async (t) => {
             last_name: "User-update"
         })
 
-        const updateRes = await updateUser(userUpdate, kv)
+        const updateRes = await updateUser(userUpdate, kv) as OpsResult
+
+        if (!updateRes.ok) throw new Error(JSON.stringify(updateRes))
+        
+        assert(schemas.ZUser.safeParse(updateRes.value).success)
 
         
     })

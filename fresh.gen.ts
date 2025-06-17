@@ -5,8 +5,9 @@
 import * as $_404 from "./routes/_404.tsx";
 import * as $_app from "./routes/_app.tsx";
 import * as $_middleware from "./routes/_middleware.ts";
-import * as $api_transactions_index from "./routes/api/transactions/index.js";
-import * as $api_users_id_ from "./routes/api/users/[id].ts";
+import * as $api_api_schemas from "./routes/api/_api_schemas.ts";
+import * as $api_transactions_id_ from "./routes/api/transactions/[id].ts";
+import * as $api_transactions_index from "./routes/api/transactions/index.ts";
 import * as $api_users_index from "./routes/api/users/index.ts";
 import * as $index from "./routes/index.tsx";
 import * as $Chart from "./islands/Chart.tsx";
@@ -18,8 +19,9 @@ const manifest = {
     "./routes/_404.tsx": $_404,
     "./routes/_app.tsx": $_app,
     "./routes/_middleware.ts": $_middleware,
-    "./routes/api/transactions/index.js": $api_transactions_index,
-    "./routes/api/users/[id].ts": $api_users_id_,
+    "./routes/api/_api_schemas.ts": $api_api_schemas,
+    "./routes/api/transactions/[id].ts": $api_transactions_id_,
+    "./routes/api/transactions/index.ts": $api_transactions_index,
     "./routes/api/users/index.ts": $api_users_index,
     "./routes/index.tsx": $index,
   },

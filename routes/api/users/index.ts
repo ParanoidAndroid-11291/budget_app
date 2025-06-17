@@ -1,7 +1,8 @@
 import { Handlers, FreshContext } from "$fresh/server.ts";
 import { State } from "../../_middleware.ts";
 import { 
-    createUser, 
+    createUser,
+    updateUser,
     getUserById, 
     getUserByEmail, 
     deleteUser
@@ -34,12 +35,12 @@ export const handler: Handlers<any,State> = {
 
             if (id) user = await getUserById(id,kv)
             else {
-                const error = ApiResponse.parse({
+                const resError = ApiResponse.parse({
                     success: false,
                     message: "Parameter 'id' is undefined"
                 })
 
-                return new Response(JSON.stringify(error),{
+                return new Response(JSON.stringify(resError),{
                     status: 400,
                     headers
                 })
@@ -49,35 +50,37 @@ export const handler: Handlers<any,State> = {
             const email = params.get('email')?.toString();
             if (email) user = await getUserByEmail(email,kv)
             else {
-                const error = ApiResponse.parse({
+                const resError = ApiResponse.parse({
                     success: false,
                     message: "Parameter 'email' is undefined"
                 })
 
-                return new Response(JSON.stringify(error),{
+                return new Response(JSON.stringify(resError),{
                     status: 400,
                     headers
                 })
             }
         } else {
-            const error = ApiResponse.parse({
+            const resError = ApiResponse.parse({
                     success: false,
                     message: "Missing required parameter 'id' or 'email'"
                 })
 
-            return new Response(JSON.stringify(error),{
+            return new Response(JSON.stringify(resError),{
                     status: 400,
                     headers
                 })
         }
 
         if (!user.ok) {
-            const error = ApiResponse.parse({
+            const { issues } = user.error
+            const resError = ApiResponse.parse({
                     success: false,
+                    error: issues,
                     message: user.message
                 })
 
-            return new Response(JSON.stringify(error),{
+            return new Response(JSON.stringify(resError),{
                     status: 400,
                     headers
                 })
@@ -100,12 +103,14 @@ export const handler: Handlers<any,State> = {
 
         const opsParse = PutOpsEnum.safeParse(params.get('op')?.toString())
         if (!opsParse.success) {
-            const error = ApiResponse.parse({
+            const { issues } = opsParse.error
+            const resError = ApiResponse.parse({
                 success: false,
-                message: opsParse.error
+                error: issues,
+                message: "Invalid 'op' parameter"
             })
 
-            return new Response(JSON.stringify(error),{
+            return new Response(JSON.stringify(resError),{
                 status: 400,
                 headers
             })
@@ -120,7 +125,14 @@ export const handler: Handlers<any,State> = {
                     const user = ZUserCreate.safeParse(user_data)
 
                     if (!user.success) {
-                        return new Response(JSON.stringify(user.error),{
+                        const { issues } = user.error
+                        const resError = ApiResponse.parse({
+                            success: false,
+                            error: issues,
+                            message: "Invalid data for user"
+                        })
+
+                        return new Response(JSON.stringify(resError),{
                             status: 400,
                             headers
                         })
@@ -129,12 +141,14 @@ export const handler: Handlers<any,State> = {
                     const res = await createUser(user.data, kv) as OpsResult
 
                     if (!res.ok) {
-                        const error = ApiResponse.parse({
+                        const { error, message } = res
+                        const resError = ApiResponse.parse({
                             success: false,
-                            message: res.message
+                            error,
+                            message
                         })
 
-                        return new Response(JSON.stringify(error),{
+                        return new Response(JSON.stringify(resError),{
                             status: 400,
                             headers
                         })
@@ -156,16 +170,39 @@ export const handler: Handlers<any,State> = {
                     const user = ZUserUpdate.safeParse(user_data)
 
                     if (!user.success) {
-                        const error = ApiResponse.parse({
+                        const { issues } = user.error
+                        const resError = ApiResponse.parse({
                             success: false,
-                            message: user.error
+                            error: issues,
+                            message: "Invalid data for user"
                         })
 
-                        return new Response(JSON.stringify(error),{
+                        return new Response(JSON.stringify(resError),{
                             status: 400,
                             headers
                         })
                     }
+
+                    const res = await updateUser(user.data,kv) as OpsResult
+
+                    if (!res.ok) {
+                        const { error, message } = res
+                        const resError = ApiResponse.parse({
+                            success: false,
+                            error,
+                            message
+                        })
+
+                        return new Response(JSON.stringify(resError),{
+                            status: 400,
+                            headers
+                        })
+                    }
+
+                    return new Response(JSON.stringify(res.value),{
+                        status: 200,
+                        headers
+                    })
 
                 }
         }
@@ -178,12 +215,12 @@ export const handler: Handlers<any,State> = {
         const id = params.get("id")?.toString();
 
         if (!id) {
-            const error = ApiResponse.parse({
+            const resError = ApiResponse.parse({
                     success: false,
                     message: "Required param 'id' is missing or undefined"
                 })
 
-            return new Response(JSON.stringify(error),{
+            return new Response(JSON.stringify(resError),{
                 status: 400,
                 headers
             });
@@ -192,12 +229,14 @@ export const handler: Handlers<any,State> = {
         const res = await deleteUser(id,kv);
 
         if (res && !res.ok) {
-            const error = ApiResponse.parse({
+            const { error, message } = res
+            const resError = ApiResponse.parse({
                 success: false,
-                message: res.message
+                error,
+                message
             })
 
-            return new Response(JSON.stringify(error),{
+            return new Response(JSON.stringify(resError),{
                 status: 400,
                 headers
             })
