@@ -222,8 +222,6 @@ export const getTransactionsByDateRange = async (userId: Uuid, startDate: Date, 
 
     const startKey = getTbKey([transactionDateSetOp], { userId, date: startDate }) as TbOpsKey
     const endKey = getTbKey([transactionDateSetOp], { userId, date: endDate }) as TbOpsKey
-    console.debug("startKey",startKey)
-    console.debug("endKey",endKey)
 
     const start = startKey.tbKey as TransactionsDateSetKey
     const end = endKey.tbKey as TransactionsDateSetKey

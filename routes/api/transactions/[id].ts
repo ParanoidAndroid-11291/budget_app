@@ -9,13 +9,8 @@ import {
 } from "../../../deno_kv/operations/transactions.ts";
 import { 
     ZOpsResult,
-    ZUser,
-    ZTransaction,
     ZTransactionUpdate,
-    ZUuid,
-    ZCurrency,
-    ZDate,
-    ZEmail
+    ZUuid
 } from "../../../deno_kv/schemas.ts";
 import { ApiResponse } from "../_api_schemas.ts";
 
@@ -25,22 +20,30 @@ type Uuid = z.infer<typeof ZUuid>
 
 const GetTransactionParams = z.object({
     userId: ZUuid
-})
+}).required()
+
+const PutTransactionParams = z.object({
+    ...ZTransactionUpdate.shape,
+    userId: ZUuid
+}).required({ userId: true })
+
+const DeleteTransactionParams = z.object({
+    userId: ZUuid
+}).required()
 
 export const handler: Handlers<any,State> = {
     async GET(req: Request, ctx: FreshContext<State>) {
         const { kv } = ctx.state.context;
         const headers = new Headers([["Content-Type","application/json"]])
+        const params = new URL(req.url).searchParams
         const transactionId = ctx.params.id
-        const transData = (await req.json())
+        const userId = params.get('userId')?.toString()
 
-        const transaction = GetTransactionParams.safeParse(transData)
-        if (!transaction.success) {
-            const { issues, message } = transaction.error
+        if (!userId) {
             const resError = ApiResponse.parse({
                 success: false,
-                error: issues,
-                message
+                error: "MISSING_REQUIRED_PARAM",
+                message: "userId is required"
             })
 
             return new Response(JSON.stringify(resError),{
@@ -49,7 +52,6 @@ export const handler: Handlers<any,State> = {
             })
         }
 
-        const { userId } = transaction.data
         const res = await getTransactionById(userId,transactionId,kv) as OpsResult
 
         if (!res.ok) {
@@ -64,5 +66,80 @@ export const handler: Handlers<any,State> = {
         const { value } = res
         return new Response(JSON.stringify(value),{ status: 200, headers})  
 
+    },
+    async PUT(req: Request, ctx: FreshContext<State>) {
+        const { kv } = ctx.state.context;
+        const headers = new Headers([["Content-Type","application/json"]])
+        const transactionId = ctx.params.id
+        const data = (await req.json())
+
+        const transaction = PutTransactionParams.safeParse(data)
+        if (!transaction.success) {
+            const { issues, message } = transaction.error
+            const resError = ApiResponse.parse({
+                success: false,
+                error: issues,
+                message
+            })
+            return new Response(JSON.stringify(resError),{ status: 400, headers })
+        }
+
+        const { userId, date, amount, currency, comment } = transaction.data
+        const updateData = ZTransactionUpdate.parse({
+            id: transactionId,
+            date,
+            amount,
+            currency,
+            comment
+        })
+        const res = await updateTransaction(userId,updateData,kv) as OpsResult
+        if (!res.ok) {
+            const { error, message } = res
+            const resError = ApiResponse.parse({
+                success: false,
+                error,
+                message
+            })
+            return new Response(JSON.stringify(resError),{ status: 400, headers })
+        }
+
+        const transactionUpdate = ApiResponse.parse({
+            success: true,
+            data: res.value
+        })
+        return new Response(JSON.stringify(transactionUpdate),{ status: 200, headers})
+    },
+    async DELETE(req: Request, ctx: FreshContext<State>) {
+        const { kv } = ctx.state.context;
+        const headers = new Headers([["Content-Type","application/json"]])
+        const transactionId = ctx.params.id
+        const data = (await req.json())
+
+        const dataParse = DeleteTransactionParams.safeParse(data)
+
+        if (!dataParse.success) {
+            const { issues, message } = dataParse.error
+            const resError = ApiResponse.parse({
+                success: false,
+                error: issues,
+                message
+            })
+
+            return new Response(JSON.stringify(resError),{ status: 400, headers })
+        }
+        const { userId } = dataParse.data
+        const res = await deleteTransaction(userId, transactionId, kv)
+
+        if (res && !res.ok) {
+            const { error, message } = res
+            const resError = ApiResponse.parse({
+                success: false,
+                error,
+                message
+            })
+            return new Response(JSON.stringify(resError),{ status: 400, headers })
+        }
+
+        return new Response(null, { status: 202 })
     }
 }
