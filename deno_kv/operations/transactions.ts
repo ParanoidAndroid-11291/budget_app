@@ -153,7 +153,7 @@ export const getTransactionById = async (userId: Uuid, transactionId: Uuid, kv: 
     }
 
     const key = ZTransactionsTbKey.parse([userId,transactionTbKey,transactionId])
-    const { value, versionstamp} = await kv.get<Transaction>(key)
+    const { value, versionstamp } = await kv.get<Transaction>(key)
 
     return ZOpsResult.parse({
         ok: true,

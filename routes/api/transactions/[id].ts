@@ -7,6 +7,8 @@ import {
     deleteTransaction
 } from "../../../deno_kv/operations/transactions.ts";
 import { 
+ZCurrency,
+ZDate,
     ZOpsResult,
     ZTransactionUpdate,
     ZUuid
@@ -15,16 +17,16 @@ import { ApiResponse } from "../_api_schemas.ts";
 
 type ApiResponse = z.infer<typeof ApiResponse>
 type OpsResult = z.infer<typeof ZOpsResult>
-type Uuid = z.infer<typeof ZUuid>
-
-const GetTransactionParams = z.object({
-    userId: ZUuid
-}).required()
 
 const PutTransactionParams = z.object({
-    ...ZTransactionUpdate.shape,
-    userId: ZUuid
-}).required({ userId: true })
+    userId: ZUuid,
+    date: ZDate,
+    amount: z.number(),
+    currency: ZCurrency,
+    comment: z.string()
+})
+.required({ userId: true })
+.partial({ date: true, amount: true, currency: true, comment: true })
 
 const DeleteTransactionParams = z.object({
     userId: ZUuid
@@ -70,9 +72,9 @@ export const handler: Handlers<any,State> = {
         const { kv } = ctx.state.context;
         const headers = new Headers([["Content-Type","application/json"]])
         const transactionId = ctx.params.id
-        const data = (await req.json())
+        const body = (await req.json())
 
-        const transaction = PutTransactionParams.safeParse(data)
+        const transaction = PutTransactionParams.safeParse(body)
         if (!transaction.success) {
             const { issues, message } = transaction.error
             const resError = ApiResponse.parse({
@@ -83,14 +85,17 @@ export const handler: Handlers<any,State> = {
             return new Response(JSON.stringify(resError),{ status: 400, headers })
         }
 
-        const { userId, date, amount, currency, comment } = transaction.data
-        const updateData = ZTransactionUpdate.parse({
-            id: transactionId,
-            date,
-            amount,
-            currency,
-            comment
-        })
+        let userId = ""
+        const temp = {}
+        for (const [key,value] of Object.entries(transaction.data)) {
+            if (key === "userId") { userId = value as string }
+            else { Object.defineProperty(temp, key, { value }) }
+        }
+        console.debug("temp",temp)
+        
+        const updateData = ZTransactionUpdate.parse({ ...temp, id: transactionId })
+        console.debug("updateData",updateData)
+
         const res = await updateTransaction(userId,updateData,kv) as OpsResult
         if (!res.ok) {
             const { error, message } = res
