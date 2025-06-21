@@ -17,6 +17,7 @@ import { ApiResponse } from "../_api_schemas.ts";
 
 type ApiResponse = z.infer<typeof ApiResponse>
 type OpsResult = z.infer<typeof ZOpsResult>
+type Uuid = z.infer<typeof ZUuid>
 
 const PutTransactionParams = z.object({
     userId: ZUuid,
@@ -85,16 +86,17 @@ export const handler: Handlers<any,State> = {
             return new Response(JSON.stringify(resError),{ status: 400, headers })
         }
 
-        let userId = ""
-        const temp = {}
+        const { userId } = transaction.data
+        const entries = []
         for (const [key,value] of Object.entries(transaction.data)) {
-            if (key === "userId") { userId = value as string }
-            else { Object.defineProperty(temp, key, { value }) }
+            if (key !== "userId") entries.push([key,value])
         }
-        console.debug("temp",temp)
+        const temp = Object.fromEntries(entries)
         
-        const updateData = ZTransactionUpdate.parse({ ...temp, id: transactionId })
-        console.debug("updateData",updateData)
+        const updateData = ZTransactionUpdate.parse({
+            ...temp,
+            id: transactionId
+         })
 
         const res = await updateTransaction(userId,updateData,kv) as OpsResult
         if (!res.ok) {
