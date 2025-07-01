@@ -1,4 +1,4 @@
-import { Handlers, FreshContext } from "$fresh/server.ts";
+import { Handlers, FreshContext, PageProps } from "$fresh/server.ts";
 import { State } from "./_middleware.ts";
 import Chart from "../islands/Chart.tsx";
 import moment from "moment"
@@ -9,30 +9,30 @@ import { z } from "zod/v4"
 const TransactionsList = z.array(ZTransaction)
 
 type ApiResponse = z.infer<typeof ApiResponse>
+// type Transaction = z.infer<typeof ZTransaction>
 
-export const handler: Handlers<any,State> = {
-  async GET(req: Request, ctx: FreshContext<State>) {
-    const url = new URL("/api/transactions", req.url)
-    url.searchParams.set("userId","01JX8XE6G424T2C8KX27CDJAYK")
-    const date = moment("2025-06-17").format("YYYY-MM-DD").toString()
-    url.searchParams.set("startDate",date)
+// export const handler: Handlers<any,State> = {
+//   async GET(req: Request, ctx: FreshContext<State>) {
+//     const url = new URL("/api/transactions", req.url)
+//     url.searchParams.set("userId","01JX8XE6G424T2C8KX27CDJAYK")
+//     const date = moment("2025-06-17").format("YYYY-MM-DD").toString()
+//     url.searchParams.set("startDate",date)
 
-    const res = await fetch(url)
-    console.debug("res",res)
-    try {
-      const transactions = await TransactionsList.parseAsync(res.json())
-      console.debug("transactions",transactions)
+//     const res = await fetch(url)
+//     console.debug("res",res)
+//     try {
+//       const transactions = await TransactionsList.parseAsync(res.json())
+//       console.debug("transactions",transactions)
 
+//       return ctx.render(transactions)
 
-      return ctx.render(transactions)
-
-    } catch(err) {
-      if (err instanceof z.ZodError) {
-        return ctx.renderNotFound(err.issues)
-      }
-    }
-  }
-}
+//     } catch(err) {
+//       if (err instanceof z.ZodError) {
+//         return ctx.renderNotFound(err.issues)
+//       }
+//     }
+//   }
+// }
 
 export default async (req: Request, ctx: FreshContext<State>) => {
   const url = new URL("/api/transactions", req.url)
