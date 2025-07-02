@@ -9,6 +9,7 @@ import * as $api_api_schemas from "./routes/api/_api_schemas.ts";
 import * as $api_transactions_id_ from "./routes/api/transactions/[id].ts";
 import * as $api_transactions_index from "./routes/api/transactions/index.ts";
 import * as $api_users_index from "./routes/api/users/index.ts";
+import * as $home_index from "./routes/home/index.tsx";
 import * as $index from "./routes/index.tsx";
 import * as $Chart from "./islands/Chart.tsx";
 import * as $Counter from "./islands/Counter.tsx";
@@ -23,6 +24,7 @@ const manifest = {
     "./routes/api/transactions/[id].ts": $api_transactions_id_,
     "./routes/api/transactions/index.ts": $api_transactions_index,
     "./routes/api/users/index.ts": $api_users_index,
+    "./routes/home/index.tsx": $home_index,
     "./routes/index.tsx": $index,
   },
   islands: {

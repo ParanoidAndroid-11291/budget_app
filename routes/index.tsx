@@ -1,69 +1,40 @@
-import { Handlers, FreshContext } from "$fresh/server.ts";
+import { FreshContext } from "$fresh/server.ts";
 import { State } from "./_middleware.ts";
-import Chart from "../islands/Chart.tsx";
 import moment from "moment"
-import { ZTransaction } from "../deno_kv/schemas.ts";
-import { ApiResponse } from "./api/_api_schemas.ts";
+import Chart from "../islands/Chart.tsx";
+import Button from "../components/Button.tsx";
+import { getTransactionsByDate } from "../deno_kv/operations/transactions.ts";
+import { ZOpsResult, ZTransaction } from "../deno_kv/schemas.ts"
 import { z } from "zod/v4"
 
+const testUserId = "01JX8XE6G424T2C8KX27CDJAYK"
+const startDate = moment("2025-06-17").format("YYYY-MM-DD").toString()
+
 const TransactionsList = z.array(ZTransaction)
+type TransactionsList = z.infer<typeof TransactionsList>
+type OpsResult = z.infer<typeof ZOpsResult>
 
-type ApiResponse = z.infer<typeof ApiResponse>
+export default async (_req: Request, ctx: FreshContext<State>) => {
+  const { kv } = ctx.state.context
 
-export const handler: Handlers<any,State> = {
-  async GET(req: Request, ctx: FreshContext<State>) {
-    const url = new URL("/api/transactions", req.url)
-    url.searchParams.set("userId","01JX8XE6G424T2C8KX27CDJAYK")
-    const date = moment("2025-06-17").format("YYYY-MM-DD").toString()
-    url.searchParams.set("startDate",date)
+  const data = await getTransactionsByDate(testUserId,startDate,kv) as OpsResult
 
-    const res = await fetch(url)
-    console.debug("res",res)
-    try {
-      const transactions = await TransactionsList.parseAsync(res.json())
-      console.debug("transactions",transactions)
-
-
-      return ctx.render(transactions)
-
-    } catch(err) {
-      if (err instanceof z.ZodError) {
-        return ctx.renderNotFound(err.issues)
-      }
-    }
+  if (!data.ok) {
+    console.error("transactions error",data)
+    return ctx.renderNotFound()
   }
-}
 
-export default async (req: Request, ctx: FreshContext<State>) => {
-  const url = new URL("/api/transactions", req.url)
-  url.searchParams.set("userId","01JX8XE6G424T2C8KX27CDJAYK")
-  const date = moment("2025-06-17").format("YYYY-MM-DD").toString()
-  url.searchParams.set("startDate",date)
+  const transactions: TransactionsList = data.value
 
-  const res = await fetch(url)
-  console.debug("res",res)
-  try {
-    const transactions = await ApiResponse.parseAsync(res.json())
-    console.debug("transactions",transactions)
-
-    if (!transactions.success) {
-      return ctx.renderNotFound({ message: transactions.error })
-    }
-
-    return (
-    <div class="w-screen px-10 py-5 flex flex-col">
+  return (
+    <div class="w-screen h-fit grid auto-rows-min">
+      <div class="w-full h-24 px-8 flex flex-row justify-between items-center bg-slate-500">
+        <h1 class="text-xl">Fresh Budget Tracker</h1>
+        <Button>Add Transaction</Button>
+      </div>
       <div class="w-full h-fit px-8">
-          <Chart data={transactions.data}/>
-      </div>
-      <div class="w-full h-5 my-5 bg-slate-400">
-
-      </div>
+          <Chart data={transactions}/>
+        </div>
     </div>
   );
-
-  } catch(err) {
-    if (err instanceof z.ZodError) {
-      return ctx.renderNotFound(err.issues)
-    }
-  }
 }
