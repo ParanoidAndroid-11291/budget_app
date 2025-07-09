@@ -29,18 +29,18 @@ export default (props: ButtonProps) => {
     case ColorStyle.enum.primary:
       if (props.buttonStyle === "solid") return <button {...props}
         disabled={!IS_BROWSER || props.disabled} 
-        className="px-2 py-1 border-gray-500 border-2 rounded bg-white hover:bg-gray-200 transition-colors" 
+        className="border border-solid border-transparent rounded-full px-8 py-3 pb-1 pt-1.5 bg-purp text-white font-bold transition duration-300 ease-out hover:rounded hover:bg-minty hover:text-black" 
       />
 
       else return <button {...props}
         disabled={!IS_BROWSER || props.disabled} 
-        className="px-2 py-1 border-gray-500 border-2 rounded bg-white hover:bg-gray-200 transition-colors" 
+        className="transition delay-300 ease-out border-2 border-solid rounded-full hover:rounded px-8 py-3 pb-1 pt-1.5 bg-transparent hover:bg-minty text-purp hover:text-white font-bold"
         />
 
     default:
       return <button {...props}
         disabled={!IS_BROWSER || props.disabled} 
-        className="border border-solid border-transparent rounded px-6 pb-1 pt-1.5 bg-carbon text-white" />
+        className="transition delay-300 ease-out border border-solid border-transparent rounded-full hover:rounded px-8 py-3 pb-1 pt-1.5 bg-carbon hover:bg-purp text-white hover:text-black font-bold" />
   }
 
 }
