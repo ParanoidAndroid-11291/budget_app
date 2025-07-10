@@ -17,6 +17,8 @@ type ColorStyle = z.infer<typeof ColorStyle>
 const ButtonStyle = z.enum(["solid","inverted"])
 type ButtonStyle = z.infer<typeof ButtonStyle>
 
+const LineStyles = z.object({ solid: z.string(), inverted: z.string() })
+
 interface ButtonProps extends JSX.HTMLAttributes<HTMLButtonElement> {
   colorStyle: ColorStyle,
   buttonStyle: ButtonStyle
@@ -29,7 +31,7 @@ export default (props: ButtonProps) => {
     case ColorStyle.enum.primary:
       if (props.buttonStyle === "solid") return <button {...props}
         disabled={!IS_BROWSER || props.disabled} 
-        className="border border-solid border-transparent rounded-full px-8 py-3 pb-1 pt-1.5 bg-purp text-white font-bold transition duration-300 ease-out hover:rounded hover:bg-minty hover:text-black" 
+        className="border border-solid border-transparent rounded-full px-8 py-3 pb-1 pt-1.5 bg-purp text-white font-bold transition duration-300 ease-in-out hover:rounded hover:bg-minty hover:text-black" 
       />
 
       else return <button {...props}
