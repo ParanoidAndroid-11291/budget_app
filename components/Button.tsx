@@ -24,6 +24,44 @@ interface ButtonProps extends JSX.HTMLAttributes<HTMLButtonElement> {
   buttonStyle: ButtonStyle
 }
 
+const styles = {
+  primary: {
+    solid: "border border-solid border-transparent rounded-full" + 
+        "px-8 py-3 pb-1 pt-1.5 bg-purp text-white font-bold" + 
+        "transition duration-300 ease-out hover:rounded hover:bg-minty hover:text-black",
+    inverted: "border-2 border-solid rounded-full" + 
+        "px-8 py-3 pb-1 pt-1.5 bg-transparent text-purp font-bold" +
+        "transition delay-300 ease-out hover:rounded hover:bg-purp hover:text-black"
+  },
+  secondary: {
+    
+  },
+  neutral: {
+    solid: "border border-solid border-transparent rounded-full" + 
+        "px-8 py-3 pb-1 pt-1.5 bg-carbon text-white font-bold" + 
+        "transition delay-300 ease-out hover:rounded hover:bg-purp hover:text-black",
+    inverted: "border-2 border-solid rounded-full" +
+        "px-8 py-3 pt-1.5 bg-transparent text-purp font-bold" +
+        "transition delay-300 ease-out hover:rounded hover:bg-purp hover:text-black"
+  },
+  danger: {
+    solid: "",
+    inverted: ""
+  },
+  warning: {
+    solid: "",
+    inverted: ""
+  },
+  success: {
+    solid: "",
+    inverted: ""
+  },
+  info: {
+    solid: "",
+    inverted: ""
+  }
+}
+
 
 export default (props: ButtonProps) => {
   
@@ -31,18 +69,29 @@ export default (props: ButtonProps) => {
     case ColorStyle.enum.primary:
       if (props.buttonStyle === "solid") return <button {...props}
         disabled={!IS_BROWSER || props.disabled} 
-        className="border border-solid border-transparent rounded-full px-8 py-3 pb-1 pt-1.5 bg-purp text-white font-bold transition duration-300 ease-in-out hover:rounded hover:bg-minty hover:text-black" 
+        className={styles.primary.solid}
       />
 
       else return <button {...props}
         disabled={!IS_BROWSER || props.disabled} 
-        className="transition delay-300 ease-out border-2 border-solid rounded-full hover:rounded px-8 py-3 pb-1 pt-1.5 bg-transparent hover:bg-minty text-purp hover:text-white font-bold"
+        className={styles.primary.inverted}
         />
+        
+    case ColorStyle.enum.neutral:
+      if (props.buttonStyle === "solid") return <button {...props}
+        disabled={!IS_BROWSER || props.disabled}
+        className={styles.neutral.solid}
+      />
+
+      else return <button {...props}
+        disabled={!IS_BROWSER || props.disabled}
+        className={styles.neutral.inverted}
+      />
 
     default:
       return <button {...props}
         disabled={!IS_BROWSER || props.disabled} 
-        className="transition delay-300 ease-out border border-solid border-transparent rounded-full hover:rounded px-8 py-3 pb-1 pt-1.5 bg-carbon hover:bg-purp text-white hover:text-black font-bold" />
+        className={styles.neutral.solid} />
   }
 
 }
