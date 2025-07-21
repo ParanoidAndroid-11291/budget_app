@@ -26,72 +26,131 @@ interface ButtonProps extends JSX.HTMLAttributes<HTMLButtonElement> {
 
 const styles = {
   primary: {
-    solid: "border border-solid border-transparent rounded-full" + 
-        "px-8 py-3 pb-1 pt-1.5 bg-purp text-white font-bold" + 
-        "transition duration-300 ease-out hover:rounded hover:bg-minty hover:text-black",
-    inverted: "border-2 border-solid rounded-full" + 
-        "px-8 py-3 pb-1 pt-1.5 bg-transparent text-purp font-bold" +
-        "transition delay-300 ease-out hover:rounded hover:bg-purp hover:text-black"
+    solid: "border border-transparent rounded-full " + 
+        "px-8 py-3 bg-purp text-white font-bold " + 
+        "transition duration-300 ease-out hover:rounded-xl hover:bg-minty hover:text-carbon",
+    inverted: "border-2 border-solid rounded-full " + 
+        "px-8 py-3 bg-transparent text-purp font-bold " +
+        "transition duration-300 ease-out hover:rounded-xl hover:bg-minty hover:text-carbon"
   },
   secondary: {
-    
+    solid: "border border-solid border-transparent rounded-full " +
+        "px-8 py-3 bg-minty text-carbon font-bold " +
+        "transition duration-300 ease-out hover:rounded-xl hover:bg-purp hover:text-white",
+    inverted: "border-2 border-solid rounded-full " + 
+        "px-8 py-3 bg-transparent text-minty font-bold " +
+        "transition duration-300 ease-out hover:rounded-xl hover:bg-purp hover:text-white"
   },
   neutral: {
-    solid: "border border-solid border-transparent rounded-full" + 
-        "px-8 py-3 pb-1 pt-1.5 bg-carbon text-white font-bold" + 
-        "transition delay-300 ease-out hover:rounded hover:bg-purp hover:text-black",
-    inverted: "border-2 border-solid rounded-full" +
-        "px-8 py-3 pt-1.5 bg-transparent text-purp font-bold" +
-        "transition delay-300 ease-out hover:rounded hover:bg-purp hover:text-black"
+    solid: "border border-transparent rounded-full " + 
+        "px-8 py-3 bg-carbon text-white font-bold " + 
+        "transition duration-300 ease-out hover:rounded-xl hover:bg-purp",
+    inverted: "border-2 border-solid rounded-full " +
+        "px-8 py-3 bg-transparent text-carbon font-bold " +
+        "transition duration-300 ease-out hover:rounded-xl hover:bg-purp hover:text-white"
   },
   danger: {
-    solid: "",
-    inverted: ""
+    solid: "border border-transparent rounded-full " + 
+        "px-8 py-3 bg-danger text-white font-bold " + 
+        "transition duration-300 ease-out hover:rounded-xl hover:bg-danger",
+    inverted: "border-2 border-solid rounded-full" +
+        "px-8 py-3 bg-transparent text-danger font-bold" +
+        "transition duration-300 ease-out hover:rounded-xl hover:bg-danger hover:text-white"
   },
   warning: {
-    solid: "",
-    inverted: ""
+    solid: "border border-transparent rounded-full " + 
+        "px-8 py-3 bg-warning text-carbon font-bold " + 
+        "transition duration-300 ease-out hover:rounded-xl hover:bg-warning",
+    inverted: "border-2 border-solid rounded-full " +
+        "px-8 py-3 bg-transparent text-warning font-bold " +
+        "transition duration-300 ease-out hover:rounded-xl hover:bg-warning hover:text-carbon"
   },
   success: {
-    solid: "",
-    inverted: ""
-  },
-  info: {
-    solid: "",
-    inverted: ""
+    solid: "border border-transparent rounded-full " + 
+        "px-8 py-3 bg-success text-white font-bold " + 
+        "transition duration-300 ease-out hover:rounded-xl hover:bg-success",
+    inverted: "border-2 border-solid rounded-full " +
+        "px-8 py-3 bg-transparent text-success font-bold " +
+        "transition duration-300 ease-out hover:rounded-xl hover:bg-success hover:text-white"
   }
 }
 
 
 export default (props: ButtonProps) => {
+
+  const { primary, secondary, neutral, danger, warning, success } = styles
   
   switch (props.colorStyle) {
     case ColorStyle.enum.primary:
       if (props.buttonStyle === "solid") return <button {...props}
         disabled={!IS_BROWSER || props.disabled} 
-        className={styles.primary.solid}
+        className={primary.solid}
       />
 
       else return <button {...props}
         disabled={!IS_BROWSER || props.disabled} 
-        className={styles.primary.inverted}
+        className={primary.inverted}
+        />
+
+    case ColorStyle.enum.secondary:
+      if (props.buttonStyle === "solid") return <button {...props}
+        disabled={!IS_BROWSER || props.disabled}
+        className={secondary.solid}
+        />
+      
+      else return <button {...props}
+        disabled={!IS_BROWSER || props.disabled}
+        className={secondary.inverted}
         />
         
     case ColorStyle.enum.neutral:
       if (props.buttonStyle === "solid") return <button {...props}
         disabled={!IS_BROWSER || props.disabled}
-        className={styles.neutral.solid}
+        className={neutral.solid}
       />
 
       else return <button {...props}
         disabled={!IS_BROWSER || props.disabled}
-        className={styles.neutral.inverted}
+        className={neutral.inverted}
+      />
+
+    case ColorStyle.enum.danger:
+      if (props.buttonStyle === 'solid') return <button {...props}
+        disabled={!IS_BROWSER || props.disabled}
+        className={danger.solid}
+      />
+
+      else return <button {...props}
+        disabled={!IS_BROWSER || props.disabled}
+        className={danger.inverted}
+      />
+
+    case ColorStyle.enum.warning:
+      if (props.buttonStyle === 'solid') return <button {...props}
+        disabled={!IS_BROWSER || props.disabled}
+        className={warning.solid}
+      />
+
+      else return <button {...props}
+        disabled={!IS_BROWSER || props.disabled}
+        className={warning.inverted}
+      />
+
+    case ColorStyle.enum.success:
+      if (props.buttonStyle === 'solid') return <button {...props}
+        disabled={!IS_BROWSER || props.disabled}
+        className={success.solid}
+      />
+
+      else return <button {...props}
+        disabled={!IS_BROWSER || props.disabled}
+        className={success.inverted}
       />
 
     default:
       return <button {...props}
         disabled={!IS_BROWSER || props.disabled} 
-        className={styles.neutral.solid} />
+        className={neutral.solid} />
   }
 
 }
