@@ -17,8 +17,6 @@ type ColorStyle = z.infer<typeof ColorStyle>
 const ButtonStyle = z.enum(["solid","inverted"])
 type ButtonStyle = z.infer<typeof ButtonStyle>
 
-const LineStyles = z.object({ solid: z.string(), inverted: z.string() })
-
 interface ButtonProps extends JSX.HTMLAttributes<HTMLButtonElement> {
   colorStyle: ColorStyle,
   buttonStyle: ButtonStyle
