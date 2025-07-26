@@ -75,6 +75,7 @@ const styles = {
 
 
 export default (props: ButtonProps) => {
+  console.debug("Button IS_BROWSER",IS_BROWSER)
 
   const { primary, secondary, neutral, danger, warning, success } = styles
   
