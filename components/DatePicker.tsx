@@ -1,5 +1,7 @@
 import { JSX } from "preact";
 import { IS_BROWSER } from "$fresh/runtime.ts";
+import { signal } from "@preact/signals";
+import moment from "moment";
 import { z } from "zod/v4"
 
 const ModeType = z.literal("range").optional()
@@ -10,19 +12,21 @@ type StartDate = z.infer<typeof StartDate>
 const EndDate = z.iso.date()
 type EndDate = z.infer<typeof EndDate>
 
+const startDateSignal = signal(moment().format('YYYY-MM-DD'))
+const endDateSignal = signal(moment().format('YYYY-MM-DD'))
+
 interface DatePickerProps extends JSX.HTMLAttributes<HTMLInputElement> {
     mode?: ModeType;
-    startDate: StartDate;
+    startDate?: StartDate;
     endDate?: EndDate;
 }
 
 export default (props: DatePickerProps) => {
-    console.debug("IS_BROWSER",IS_BROWSER)
 
-    if (props.mode && props.endDate){
+    if (props.mode){
         try {
-            const startDate = StartDate.parse(props.startDate)
-            const endDate = EndDate.parse(props.endDate)
+            const startDate = props.startDate ? StartDate.parse(props.startDate) : startDateSignal.value
+            const endDate = props.endDate ? EndDate.parse(props.endDate) : endDateSignal.value
 
             return (
                 <div class="flex justify-evenly items-center w-fit px-5 py-1.5 gap-2 bg-white border border-carbon rounded-full">
@@ -54,7 +58,7 @@ export default (props: DatePickerProps) => {
     }
 
     try {
-        const startDate = StartDate.parse(props.startDate)
+        const startDate = props.startDate ? StartDate.parse(props.startDate) : startDateSignal.value
 
         return <input
             { ...props }
